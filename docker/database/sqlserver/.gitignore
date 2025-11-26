@@ -1,0 +1,7 @@
+# Ignore SQL Server data files but keep folder structure
+data/*
+log/*
+backup/*
+
+# Keep .gitkeep files
+!.gitkeep

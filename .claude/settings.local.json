@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker-compose:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet run)",
+      "Bash(powershell.exe -Command \"Invoke-RestMethod -Uri ''http://localhost:5001/api/auth/login'' -Method POST -ContentType ''application/json'' -Body ''{\"\"email\"\":\"\"admin@acme.com\"\",\"\"password\"\":\"\"admin123\"\",\"\"siteCode\"\":\"\"ACME\"\"}'' | ConvertTo-Json -Depth 5\")",
+      "Bash(docker start:*)",
+      "Bash(curl:*)",
+      "Bash(docker restart:*)",
+      "Bash(powershell.exe -Command \"Get-Content ''Backend\\Database\\13_UpdatePasswordHash.sql'' -Raw | docker exec -i taskflow-sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ''TaskFlow@2025!Strong'' -C -d TaskFlowDB_Dev\")",
+      "Bash(powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"& ''./init-database-simple.ps1''\")",
+      "Bash(powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"Start-Sleep -Seconds 30; Write-Host ''SQL Server should be ready now''\")",
+      "Bash(docker exec:*)",
+      "Bash(powershell.exe -Command \"docker exec taskflow-sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ''TaskFlow@2025!Strong'' -C -d TaskFlowDB_Dev -Q ''SELECT SiteID, SiteCode, SiteName FROM Sites''\")",
+      "Bash(powershell.exe:*)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "enabledMcpjsonServers": [
+    "human"
+  ],
+  "enableAllProjectMcpServers": true
+}

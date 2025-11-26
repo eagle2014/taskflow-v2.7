@@ -1,0 +1,499 @@
+@theme {
+  --font-size: 14px;
+  
+  /* TaskFlow Dark Theme Variables */
+  --color-background: #181c28;
+  --color-foreground: #ffffff;
+  --color-card: #292d39;
+  --color-card-foreground: #ffffff;
+  --color-popover: #292d39;
+  --color-popover-foreground: #ffffff;
+  --color-primary: #0394ff;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #3d4457;
+  --color-secondary-foreground: #ffffff;
+  --color-muted: #3d4457;
+  --color-muted-foreground: #838a9c;
+  --color-accent: #3d4457;
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #ff6b6b;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #3d4457;
+  --color-input: #3d4457;
+  --color-ring: #0394ff;
+  --color-chart-1: #0394ff;
+  --color-chart-2: #ff6b6b;
+  --color-chart-3: #51cf66;
+  --color-chart-4: #ffd43b;
+  --color-chart-5: #ff8cc8;
+  --radius: 0.625rem;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+}
+
+/* Define dark mode styles */
+.dark {
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: var(--font-size);
+  }
+
+  /* Always apply dark theme for TaskFlow */
+  html {
+    color-scheme: dark;
+  }
+  
+  html.dark,
+  html {
+    --color-background: #181c28;
+    --color-foreground: #ffffff;
+    --color-card: #292d39;
+    --color-card-foreground: #ffffff;
+    --color-popover: #292d39;
+    --color-popover-foreground: #ffffff;
+    --color-primary: #0394ff;
+    --color-primary-foreground: #ffffff;
+    --color-secondary: #3d4457;
+    --color-secondary-foreground: #ffffff;
+    --color-muted: #3d4457;
+    --color-muted-foreground: #838a9c;
+    --color-accent: #3d4457;
+    --color-accent-foreground: #ffffff;
+    --color-destructive: #ff6b6b;
+    --color-destructive-foreground: #ffffff;
+    --color-border: #3d4457;
+    --color-input: #3d4457;
+    --color-ring: #0394ff;
+  }
+}
+
+/**
+ * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
+ */
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-size: 2rem;
+      font-weight: var(--font-weight-medium);
+      line-height: 1.4;
+      color: #ffffff;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: var(--font-weight-medium);
+      line-height: 1.4;
+      color: #ffffff;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: var(--font-weight-medium);
+      line-height: 1.4;
+      color: #ffffff;
+    }
+
+    h4 {
+      font-size: 1rem;
+      font-weight: var(--font-weight-medium);
+      line-height: 1.4;
+      color: #ffffff;
+    }
+
+    p {
+      font-size: 1rem;
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+      color: #ffffff;
+    }
+
+    label {
+      font-size: 1rem;
+      font-weight: var(--font-weight-medium);
+      line-height: 1.4;
+      color: #ffffff;
+    }
+
+    button {
+      font-size: 1rem;
+      font-weight: var(--font-weight-medium);
+      line-height: 1.4;
+    }
+
+    input {
+      font-size: 1rem;
+      font-weight: var(--font-weight-normal);
+      line-height: 1.4;
+      color: #ffffff;
+    }
+  }
+}
+
+/* TaskFlow specific styles */
+.taskflow-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.taskflow-scrollbar::-webkit-scrollbar-track {
+  background: #3d4457;
+  border-radius: 3px;
+}
+
+.taskflow-scrollbar::-webkit-scrollbar-thumb {
+  background: #838a9c;
+  border-radius: 3px;
+}
+
+.taskflow-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #0394ff;
+}
+
+/* Animation utilities */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.2s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Gantt Chart Drag & Drop Styles */
+.gantt-task-dragging {
+  opacity: 0.5;
+  cursor: grabbing !important;
+}
+
+.gantt-drag-over {
+  border-top: 2px solid #0394ff !important;
+  background-color: rgba(3, 148, 255, 0.05);
+}
+
+.gantt-resize-active {
+  user-select: none;
+  cursor: ew-resize !important;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* Focus styles for accessibility */
+.focus-visible {
+  outline: 2px solid #0394ff;
+  outline-offset: 2px;
+}
+
+/* Enhanced form input styles */
+input:focus,
+textarea:focus,
+select:focus {
+  box-shadow: 0 0 0 2px rgba(3, 148, 255, 0.2);
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+/* Button hover effects */
+button:hover {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Card hover effects */
+.hover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease-in-out;
+}
+
+/* Utility classes for TaskFlow theme */
+.bg-taskflow-primary {
+  background-color: #0394ff;
+}
+
+.text-taskflow-primary {
+  color: #0394ff;
+}
+
+.bg-taskflow-secondary {
+  background-color: #292d39;
+}
+
+.bg-taskflow-muted {
+  background-color: #3d4457;
+}
+
+.text-taskflow-muted {
+  color: #838a9c;
+}
+
+.border-taskflow {
+  border-color: #3d4457;
+}
+
+/* Gradient utilities */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #0394ff 0%, #0570cd 100%);
+}
+
+.bg-gradient-success {
+  background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+}
+
+.bg-gradient-warning {
+  background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
+}
+
+.bg-gradient-danger {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+}
+
+/* Status indicators */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.status-active {
+  background-color: #51cf66;
+  box-shadow: 0 0 6px rgba(81, 207, 102, 0.6);
+}
+
+.status-busy {
+  background-color: #ff6b6b;
+  box-shadow: 0 0 6px rgba(255, 107, 107, 0.6);
+}
+
+.status-away {
+  background-color: #ffd43b;
+  box-shadow: 0 0 6px rgba(255, 212, 59, 0.6);
+}
+
+.status-offline {
+  background-color: #838a9c;
+}
+
+/* Resizable handles styling */
+.react-resizable-handle {
+  position: absolute;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.react-resizable-handle:hover {
+  background-color: rgba(3, 148, 255, 0.3);
+}
+
+.react-resizable-handle-e,
+.react-resizable-handle-w {
+  width: 8px;
+  height: 100%;
+  top: 0;
+}
+
+.react-resizable-handle-e {
+  right: -4px;
+  cursor: ew-resize;
+}
+
+.react-resizable-handle-w {
+  left: -4px;
+  cursor: ew-resize;
+}
+
+.react-resizable-handle-n,
+.react-resizable-handle-s {
+  width: 100%;
+  height: 8px;
+  left: 0;
+}
+
+.react-resizable-handle-n {
+  top: -4px;
+  cursor: ns-resize;
+}
+
+.react-resizable-handle-s {
+  bottom: -4px;
+  cursor: ns-resize;
+}
+
+.react-resizable-handle-se,
+.react-resizable-handle-sw,
+.react-resizable-handle-ne,
+.react-resizable-handle-nw {
+  width: 16px;
+  height: 16px;
+}
+
+.react-resizable-handle-se {
+  right: -4px;
+  bottom: -4px;
+  cursor: nwse-resize;
+}
+
+.react-resizable-handle-sw {
+  left: -4px;
+  bottom: -4px;
+  cursor: nesw-resize;
+}
+
+.react-resizable-handle-ne {
+  right: -4px;
+  top: -4px;
+  cursor: nesw-resize;
+}
+
+.react-resizable-handle-nw {
+  left: -4px;
+  top: -4px;
+  cursor: nwse-resize;
+}
+
+/* Resize corner indicator */
+.react-resizable-handle-se::after,
+.react-resizable-handle-sw::after,
+.react-resizable-handle-ne::after,
+.react-resizable-handle-nw::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background-color: #0394ff;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.react-resizable-handle-se::after {
+  right: 2px;
+  bottom: 2px;
+}
+
+.react-resizable-handle-sw::after {
+  left: 2px;
+  bottom: 2px;
+}
+
+.react-resizable-handle-ne::after {
+  right: 2px;
+  top: 2px;
+}
+
+.react-resizable-handle-nw::after {
+  left: 2px;
+  top: 2px;
+}
+
+.react-resizable-handle:hover::after {
+  opacity: 1;
+}
+
+/* re-resizable handles styling for Invoice Dialog */
+[class*="__resizable_base__"] {
+  position: relative;
+}
+
+[class*="__resizable_base__"] > div[style*="cursor"] {
+  z-index: 10;
+  transition: background-color 0.2s ease;
+}
+
+[class*="__resizable_base__"] > div[style*="cursor"]:hover {
+  background-color: rgba(3, 148, 255, 0.2) !important;
+}
+
+/* Corner resize indicators for re-resizable */
+[class*="__resizable_base__"] > div[style*="nwse-resize"]::after,
+[class*="__resizable_base__"] > div[style*="nesw-resize"]::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background-color: #0394ff;
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+}
+
+[class*="__resizable_base__"] > div[style*="nwse-resize"]:hover::after,
+[class*="__resizable_base__"] > div[style*="nesw-resize"]:hover::after {
+  opacity: 0.8;
+}
+
+/* Position indicators */
+[class*="__resizable_base__"] > div[style*="nwse-resize"][style*="right"]::after {
+  right: 4px;
+  bottom: 4px;
+}
+
+[class*="__resizable_base__"] > div[style*="nesw-resize"][style*="right"]::after {
+  right: 4px;
+  top: 4px;
+}
+
+[class*="__resizable_base__"] > div[style*="nesw-resize"][style*="left"]::after {
+  left: 4px;
+  bottom: 4px;
+}
+
+[class*="__resizable_base__"] > div[style*="nwse-resize"][style*="left"]::after {
+  left: 4px;
+  top: 4px;
+}

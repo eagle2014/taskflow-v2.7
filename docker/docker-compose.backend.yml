@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: taskflow-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=TaskFlow@2025!Strong
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+      - ./Backend/Database:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P TaskFlow@2025!Strong -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - taskflow-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: taskflow-backend
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=TaskFlowDB_Dev;User Id=sa;Password=TaskFlow@2025!Strong;TrustServerCertificate=True;MultipleActiveResultSets=true
+      - Jwt__SecretKey=DevSuperSecretKeyForJWTTokenGeneration2024!TaskFlow@DevSecureKey#MinLength32Chars
+      - Jwt__Issuer=TaskFlowAPI_Dev
+      - Jwt__Audience=TaskFlowClient_Dev
+      - Jwt__AccessTokenExpirationMinutes=480
+      - Jwt__RefreshTokenExpirationDays=30
+      - Cors__AllowedOrigins=http://localhost:3000,http://localhost:5173,http://localhost:5174
+    ports:
+      - "5001:80"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - taskflow-network
+    restart: unless-stopped
+
+  # Database initializer (runs once to setup DB)
+  db-init:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: taskflow-db-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - ./Backend/Database:/scripts
+    command: >
+      bash -c "
+        echo 'Waiting for SQL Server to be ready...'
+        sleep 10
+
+        echo 'Creating database...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P TaskFlow@2025!Strong -Q 'CREATE DATABASE TaskFlowDB_Dev;' || echo 'Database may already exist'
+
+        echo 'Running schema script...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P TaskFlow@2025!Strong -d TaskFlowDB_Dev -i /scripts/01_CreateSchema.sql
+
+        echo 'Running stored procedures - Users...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P TaskFlow@2025!Strong -d TaskFlowDB_Dev -i /scripts/02_StoredProcedures_Users.sql
+
+        echo 'Running stored procedures - Projects...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P TaskFlow@2025!Strong -d TaskFlowDB_Dev -i /scripts/03_StoredProcedures_Projects.sql
+
+        echo 'Running stored procedures - Tasks...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P TaskFlow@2025!Strong -d TaskFlowDB_Dev -i /scripts/04_StoredProcedures_Tasks.sql
+
+        echo 'Running stored procedures - Events...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P TaskFlow@2025!Strong -d TaskFlowDB_Dev -i /scripts/05_StoredProcedures_Events.sql
+
+        echo 'Running stored procedures - Comments...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P TaskFlow@2025!Strong -d TaskFlowDB_Dev -i /scripts/06_StoredProcedures_Comments.sql
+
+        echo 'Running stored procedures - Categories...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P TaskFlow@2025!Strong -d TaskFlowDB_Dev -i /scripts/07_StoredProcedures_Categories.sql
+
+        echo 'Running stored procedures - Spaces...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P TaskFlow@2025!Strong -d TaskFlowDB_Dev -i /scripts/08_StoredProcedures_Spaces.sql
+
+        echo 'Running stored procedures - Phases...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P TaskFlow@2025!Strong -d TaskFlowDB_Dev -i /scripts/09_StoredProcedures_Phases.sql
+
+        echo 'Seeding sample data...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P TaskFlow@2025!Strong -d TaskFlowDB_Dev -i /scripts/10_SeedData_Sample.sql
+
+        echo 'Database initialization completed!'
+      "
+    networks:
+      - taskflow-network
+
+volumes:
+  sqldata:
+    driver: local
+
+networks:
+  taskflow-network:
+    driver: bridge

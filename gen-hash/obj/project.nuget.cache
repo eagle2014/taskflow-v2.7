@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "pKA77yQ2In8=",
+  "success": true,
+  "projectFilePath": "D:\\TFS\\aidev\\Modern Task Management System_v2.7\\gen-hash\\gen-hash.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\TrungNT\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}

@@ -1,0 +1,47 @@
+{
+  "version": "1.0.0",
+  "structure": "categorized",
+  "timestamp": "2025-11-25T01:45:31.595Z",
+  "skills": [
+    {
+      "name": "canvas-design",
+      "category": "ui-styling",
+      "hash": "7966f4ff9ac13a8f7329274a5f00a03f8bb16b77316b3111c69946e1119cc3f6"
+    },
+    {
+      "name": "ffmpeg",
+      "category": "media-processing",
+      "hash": "4a5471462555e2f75c8583a63d9f65cf6d41bb03a7bdfa2e653ca1470f6c01aa"
+    },
+    {
+      "name": "imagemagick",
+      "category": "media-processing",
+      "hash": "e8cfd6991e9d1a82f87cada35c98a2e76412ae62e1ecb3cb712660df9bcf6e2b"
+    },
+    {
+      "name": "nextjs",
+      "category": "web-frameworks",
+      "hash": "e275a4e03a46cfcae406a3dd8b620d7dd3e45411e53222adaf4e33e568032b66"
+    },
+    {
+      "name": "remix-icon",
+      "category": "web-frameworks",
+      "hash": "0c09557a6ee290fe77989c7fffb055b447f48baa7f23686af9da1e0fc5eb62df"
+    },
+    {
+      "name": "shadcn-ui",
+      "category": "ui-styling",
+      "hash": "55eee299650545cfc4f855abaa25397248f468d1d3adf9464a0653d6c4f5ddba"
+    },
+    {
+      "name": "tailwindcss",
+      "category": "ui-styling",
+      "hash": "fe72fab5d7dfd7a5bcbb67bad4b29bd2cb8aa50e0db2bd328382b9b7c5dd4895"
+    },
+    {
+      "name": "turborepo",
+      "category": "web-frameworks",
+      "hash": "39197fc13a15debc28d44444dadc394fc73e47cd48528c4c9070e9f8c37dbac2"
+    }
+  ]
+}

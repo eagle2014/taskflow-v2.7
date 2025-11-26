@@ -1,0 +1,59 @@
+services:
+  # SQL Server Database Only
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: taskflow-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=TaskFlow@2025!Strong
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P TaskFlow@2025!Strong -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # Database initializer
+  db-init:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: taskflow-db-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - ./Backend/Database:/scripts
+    command: >
+      bash -c "
+        echo '🔧 Waiting for SQL Server...'
+        sleep 10
+
+        echo '📁 Creating database TaskFlowDB_Dev...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'TaskFlow@2025!Strong' -Q 'CREATE DATABASE TaskFlowDB_Dev;' || echo 'Database exists'
+
+        echo '🗄️  Running schema script...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'TaskFlow@2025!Strong' -d TaskFlowDB_Dev -i /scripts/01_CreateSchema.sql
+
+        echo '⚙️  Creating stored procedures...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'TaskFlow@2025!Strong' -d TaskFlowDB_Dev -i /scripts/02_StoredProcedures_Users.sql
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'TaskFlow@2025!Strong' -d TaskFlowDB_Dev -i /scripts/03_StoredProcedures_Projects.sql
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'TaskFlow@2025!Strong' -d TaskFlowDB_Dev -i /scripts/04_StoredProcedures_Tasks.sql
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'TaskFlow@2025!Strong' -d TaskFlowDB_Dev -i /scripts/05_StoredProcedures_Events.sql
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'TaskFlow@2025!Strong' -d TaskFlowDB_Dev -i /scripts/06_StoredProcedures_Comments.sql
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'TaskFlow@2025!Strong' -d TaskFlowDB_Dev -i /scripts/07_StoredProcedures_Categories.sql
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'TaskFlow@2025!Strong' -d TaskFlowDB_Dev -i /scripts/08_StoredProcedures_Spaces.sql
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'TaskFlow@2025!Strong' -d TaskFlowDB_Dev -i /scripts/09_StoredProcedures_Phases.sql
+
+        echo '🌱 Seeding sample data...'
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'TaskFlow@2025!Strong' -d TaskFlowDB_Dev -i /scripts/10_SeedData_Sample.sql
+
+        echo '✅ Database ready!'
+      "
+
+volumes:
+  sqldata:
+    driver: local

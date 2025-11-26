@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Drag & Drop Debug Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1a1d28;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            color: #0394ff;
+        }
+        
+        .debug-panel {
+            background: #292d39;
+            border: 1px solid #3d4457;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .debug-panel h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #0394ff;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #0394ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        button:hover {
+            background: #0277cc;
+        }
+        
+        button.secondary {
+            background: #3d4457;
+        }
+        
+        button.secondary:hover {
+            background: #4a5066;
+        }
+        
+        .log-container {
+            background: #1a1d28;
+            border: 1px solid #3d4457;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            padding: 5px;
+            margin-bottom: 5px;
+            border-left: 3px solid #0394ff;
+            padding-left: 10px;
+        }
+        
+        .log-entry.error {
+            border-left-color: #ff4444;
+            color: #ff8888;
+        }
+        
+        .log-entry.success {
+            border-left-color: #44ff44;
+            color: #88ff88;
+        }
+        
+        .log-entry.warning {
+            border-left-color: #ffaa00;
+            color: #ffcc66;
+        }
+        
+        .task-list {
+            background: #292d39;
+            border: 1px solid #3d4457;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .task-item {
+            background: #1a1d28;
+            border: 1px solid #3d4457;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: move;
+            transition: all 0.2s;
+        }
+        
+        .task-item:hover {
+            border-color: #0394ff;
+            box-shadow: 0 0 10px rgba(3, 148, 255, 0.3);
+        }
+        
+        .task-item.dragging {
+            opacity: 0.5;
+        }
+        
+        .task-item.drag-over {
+            border-color: #44ff44;
+            background: #2a3d2a;
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .task-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .task-order {
+            background: #3d4457;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #838a9c;
+        }
+        
+        .task-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #838a9c;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .status-todo { background: #3d4457; }
+        .status-in-progress { background: #0394ff; }
+        .status-done { background: #44ff44; color: #000; }
+        
+        .api-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .api-status.connected {
+            background: #44ff44;
+            box-shadow: 0 0 10px #44ff44;
+        }
+        
+        .api-status.disconnected {
+            background: #ff4444;
+            box-shadow: 0 0 10px #ff4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Task Drag & Drop Debug Tool</h1>
+        
+        <div class="debug-panel">
+            <h2>
+                <span class="api-status" id="apiStatus"></span>
+                API Connection Status
+            </h2>
+            <div class="controls">
+                <button onclick="testConnection()">Test API Connection</button>
+                <button onclick="loadTasks()">Load Tasks</button>
+                <button onclick="clearLogs()" class="secondary">Clear Logs</button>
+                <button onclick="exportLogs()" class="secondary">Export Logs</button>
+            </div>
+            <div>
+                <strong>API Base URL:</strong> <span id="apiUrl">http://localhost:5001/api</span>
+            </div>
+        </div>
+        
+        <div class="debug-panel">
+            <h2>📋 Debug Logs</h2>
+            <div class="log-container" id="logContainer"></div>
+        </div>
+        
+        <div class="task-list">
+            <h2 style="margin-bottom: 15px;">Tasks (Drag to Reorder)</h2>
+            <div id="taskList">
+                <p style="color: #838a9c;">Click "Load Tasks" to fetch tasks from API</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5001/api';
+        let tasks = [];
+        let draggedTask = null;
+        
+        // Logging functions
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+        
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+            log('Logs cleared', 'info');
+        }
+        
+        function exportLogs() {
+            const logs = document.getElementById('logContainer').innerText;
+            const blob = new Blob([logs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `drag-drop-debug-${Date.now()}.txt`;
+            a.click();
+            log('Logs exported', 'success');
+        }
+        
+        // API functions
+        async function testConnection() {
+            log('Testing API connection...', 'info');
+            const apiStatus = document.getElementById('apiStatus');
+
+            try {
+                const token = localStorage.getItem('accessToken');
+                if (!token) {
+                    log('No access token found. Please login first.', 'error');
+                    apiStatus.className = 'api-status disconnected';
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/tasks`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    log('✅ API connection successful', 'success');
+                    apiStatus.className = 'api-status connected';
+                } else {
+                    log(`❌ API connection failed: ${response.status} ${response.statusText}`, 'error');
+                    apiStatus.className = 'api-status disconnected';
+                }
+            } catch (error) {
+                log(`❌ API connection error: ${error.message}`, 'error');
+                apiStatus.className = 'api-status disconnected';
+            }
+        }
+
+        async function loadTasks() {
+            log('Loading tasks from API...', 'info');
+
+            try {
+                const token = localStorage.getItem('accessToken');
+                if (!token) {
+                    log('No access token found. Please login first.', 'error');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/tasks`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                tasks = result.data || result || [];
+
+                log(`✅ Loaded ${tasks.length} tasks`, 'success');
+                renderTasks();
+            } catch (error) {
+                log(`❌ Failed to load tasks: ${error.message}`, 'error');
+            }
+        }
+
+        function renderTasks() {
+            const taskList = document.getElementById('taskList');
+
+            if (tasks.length === 0) {
+                taskList.innerHTML = '<p style="color: #838a9c;">No tasks found</p>';
+                return;
+            }
+
+            // Sort by order
+            const sortedTasks = [...tasks].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+            taskList.innerHTML = sortedTasks.map((task, index) => `
+                <div class="task-item"
+                     draggable="true"
+                     data-task-id="${task.id}"
+                     data-index="${index}">
+                    <div class="task-header">
+                        <div class="task-title">${task.title || 'Untitled Task'}</div>
+                        <div class="task-order">Order: ${task.order || 0}</div>
+                    </div>
+                    <div class="task-meta">
+                        <span class="status-badge status-${(task.status || 'todo').toLowerCase().replace(' ', '-')}">
+                            ${task.status || 'TODO'}
+                        </span>
+                        <span>ID: ${task.id.substring(0, 8)}...</span>
+                        ${task.projectId ? `<span>Project: ${task.projectId.substring(0, 8)}...</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            // Add drag event listeners
+            document.querySelectorAll('.task-item').forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragend', handleDragEnd);
+                item.addEventListener('dragleave', handleDragLeave);
+            });
+
+            log(`Rendered ${sortedTasks.length} tasks`, 'info');
+        }
+
+        function handleDragStart(e) {
+            draggedTask = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+
+            const taskId = e.target.dataset.taskId;
+            const index = e.target.dataset.index;
+            log(`🎯 Drag started: Task ${taskId.substring(0, 8)}... (index: ${index})`, 'info');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            if (e.target.classList.contains('task-item') && e.target !== draggedTask) {
+                e.target.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            if (e.target.classList.contains('task-item')) {
+                e.target.classList.remove('drag-over');
+            }
+        }
+
+        async function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const dropTarget = e.target.closest('.task-item');
+            if (!dropTarget || dropTarget === draggedTask) {
+                return;
+            }
+
+            dropTarget.classList.remove('drag-over');
+
+            const draggedId = draggedTask.dataset.taskId;
+            const targetId = dropTarget.dataset.taskId;
+            const draggedIndex = parseInt(draggedTask.dataset.index);
+            const targetIndex = parseInt(dropTarget.dataset.index);
+
+            log(`📦 Drop: Moving task ${draggedId.substring(0, 8)}... from index ${draggedIndex} to ${targetIndex}`, 'warning');
+
+            // Reorder tasks array
+            const newTasks = [...tasks];
+            const [movedTask] = newTasks.splice(draggedIndex, 1);
+            newTasks.splice(targetIndex, 0, movedTask);
+
+            // Update order property
+            const updates = newTasks.map((task, index) => ({
+                ...task,
+                order: index
+            }));
+
+            tasks = updates;
+
+            // Save to API
+            await saveTaskOrder(updates);
+
+            // Re-render
+            renderTasks();
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.task-item').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+
+            log('✋ Drag ended', 'info');
+        }
+
+        async function saveTaskOrder(updatedTasks) {
+            log('💾 Saving task order to API...', 'warning');
+
+            try {
+                const token = localStorage.getItem('accessToken');
+                if (!token) {
+                    log('No access token found', 'error');
+                    return;
+                }
+
+                // Update each task
+                const promises = updatedTasks.map(async (task) => {
+                    log(`  → Updating task ${task.id.substring(0, 8)}... order to ${task.order}`, 'info');
+
+                    const response = await fetch(`${API_BASE_URL}/tasks/${task.id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ order: task.order })
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+                    }
+
+                    return response.json();
+                });
+
+                await Promise.all(promises);
+                log('✅ Task order saved successfully!', 'success');
+            } catch (error) {
+                log(`❌ Failed to save task order: ${error.message}`, 'error');
+                console.error('Save error:', error);
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            log('Debug tool initialized', 'success');
+            testConnection();
+        });
+    </script>
+</body>
+</html>
+

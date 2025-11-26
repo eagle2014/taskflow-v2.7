@@ -1,0 +1,29 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  
+[build.environment]
+  NODE_VERSION = "18"
+  
+# No Supabase functions needed - using localStorage mode
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
+
+# Redirect all routes to index.html for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    
+# Ignore Supabase directory
+[functions]
+  # No functions directory - we don't use Supabase edge functions
+  directory = "none"

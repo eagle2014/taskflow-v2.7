@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: taskflow-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=TaskFlow@2025!Strong
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      # Persist database files in local folder
+      - ./sqlserver/data:/var/opt/mssql/data
+      - ./sqlserver/log:/var/opt/mssql/log
+      - ./sqlserver/backup:/var/opt/mssql/backup
+      # Mount SQL scripts for initialization
+      - ../Backend/Database:/docker-entrypoint-initdb.d:ro
+      # Mount init script
+      - ./init-db.sh:/init-db.sh:ro
+    command: >
+      /bin/bash -c "
+      /opt/mssql/bin/sqlservr &
+      /bin/bash /init-db.sh
+      wait
+      "
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P TaskFlow@2025!Strong -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  # Named volumes as fallback (optional)
+  sqldata:
+    driver: local

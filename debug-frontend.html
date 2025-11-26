@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Debug</title>
+    <style>
+        body {
+            background: #181c28;
+            color: white;
+            font-family: monospace;
+            padding: 20px;
+        }
+        .test {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #3a3f4f;
+            border-radius: 4px;
+        }
+        .success { border-color: #10b981; }
+        .error { border-color: #ef4444; }
+        .pending { border-color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Frontend Debug Tests</h1>
+    <div id="tests"></div>
+
+    <script type="module">
+        const tests = [];
+        const log = (name, status, message) => {
+            tests.push({ name, status, message });
+            render();
+        };
+
+        const render = () => {
+            const container = document.getElementById('tests');
+            container.innerHTML = tests.map(t => `
+                <div class="test ${t.status}">
+                    <strong>${t.name}</strong>: ${t.message}
+                </div>
+            `).join('');
+        };
+
+        // Test 1: Basic JS
+        log('JavaScript', 'success', 'Running');
+
+        // Test 2: Fetch API
+        try {
+            const response = await fetch('http://localhost:5001/health');
+            const text = await response.text();
+            log('Backend API', response.ok ? 'success' : 'error',
+                `Status: ${response.status} - ${text}`);
+        } catch (e) {
+            log('Backend API', 'error', e.message);
+        }
+
+        // Test 3: Module imports
+        try {
+            const React = await import('react');
+            log('React Import', 'success', `Version: ${React.version || 'loaded'}`);
+        } catch (e) {
+            log('React Import', 'error', e.message);
+        }
+
+        // Test 4: Check main app
+        try {
+            const response = await fetch('http://localhost:3001/src/main.tsx');
+            log('Main.tsx Access', response.ok ? 'success' : 'error',
+                `Status: ${response.status}`);
+        } catch (e) {
+            log('Main.tsx Access', 'error', e.message);
+        }
+
+        // Test 5: Check if root div exists
+        const root = document.getElementById('root');
+        log('Root Element', root ? 'success' : 'error',
+            root ? 'Found' : 'Missing');
+
+        // Test 6: Try to import App
+        try {
+            const App = await import('/src/App.tsx');
+            log('App.tsx Import', 'success', 'Loaded');
+        } catch (e) {
+            log('App.tsx Import', 'error', e.message);
+        }
+
+        // Test 7: API service
+        try {
+            const api = await import('/src/services/api.ts');
+            log('API Service', 'success', 'Loaded');
+        } catch (e) {
+            log('API Service', 'error', e.message);
+        }
+
+        // Test 8: SimpleAuthReal
+        try {
+            const auth = await import('/src/components/SimpleAuthReal.tsx');
+            log('SimpleAuthReal', 'success', 'Component loaded');
+        } catch (e) {
+            log('SimpleAuthReal', 'error', e.message);
+        }
+    </script>
+</body>
+</html>

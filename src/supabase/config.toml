@@ -1,0 +1,26 @@
+# Supabase Configuration
+# NOTE: This project does NOT use Supabase!
+# We use localStorage mode instead.
+# This file exists to prevent auto-detection errors.
+
+[api]
+enabled = false
+
+[db]
+enabled = false
+
+[realtime]
+enabled = false
+
+[storage]
+enabled = false
+
+[auth]
+enabled = false
+
+[functions]
+# Disable all edge functions
+enabled = false
+
+[analytics]
+enabled = false

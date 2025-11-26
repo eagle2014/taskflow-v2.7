@@ -1,0 +1,39 @@
+version: '3.8'
+
+# Import services from individual compose files
+services:
+  # Database services
+  sqlserver:
+    extends:
+      file: ./database/docker-compose.yml
+      service: sqlserver
+
+  db-init:
+    extends:
+      file: ./database/docker-compose.yml
+      service: db-init
+
+  # Backend services
+  backend:
+    extends:
+      file: ./backend/docker-compose.yml
+      service: backend
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+  # Frontend services
+  frontend:
+    extends:
+      file: ./frontend/docker-compose.yml
+      service: frontend
+    depends_on:
+      - backend
+
+networks:
+  taskflow-network:
+    driver: bridge
+
+volumes:
+  sqldata:
+    driver: local
