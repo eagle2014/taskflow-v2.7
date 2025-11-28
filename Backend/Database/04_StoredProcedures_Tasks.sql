@@ -14,7 +14,7 @@ IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_Task_GetAll')
 GO
 
 CREATE PROCEDURE sp_Task_GetAll
-    @SiteID UNIQUEIDENTIFIER
+    @SiteID NVARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -39,7 +39,7 @@ IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_Task_GetById')
 GO
 
 CREATE PROCEDURE sp_Task_GetById
-    @SiteID UNIQUEIDENTIFIER,
+    @SiteID NVARCHAR(50),
     @TaskID UNIQUEIDENTIFIER
 AS
 BEGIN
@@ -65,7 +65,7 @@ GO
 
 CREATE PROCEDURE sp_Task_Create
     @TaskID UNIQUEIDENTIFIER,
-    @SiteID UNIQUEIDENTIFIER,
+    @SiteID NVARCHAR(50),
     @ProjectID UNIQUEIDENTIFIER,
     @PhaseID UNIQUEIDENTIFIER = NULL,
     @ParentTaskID UNIQUEIDENTIFIER = NULL,
@@ -128,7 +128,7 @@ IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_Task_Update')
 GO
 
 CREATE PROCEDURE sp_Task_Update
-    @SiteID UNIQUEIDENTIFIER,
+    @SiteID NVARCHAR(50),
     @TaskID UNIQUEIDENTIFIER,
     @PhaseID UNIQUEIDENTIFIER = NULL,
     @ParentTaskID UNIQUEIDENTIFIER = NULL,
@@ -188,7 +188,7 @@ IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_Task_Delete')
 GO
 
 CREATE PROCEDURE sp_Task_Delete
-    @SiteID UNIQUEIDENTIFIER,
+    @SiteID NVARCHAR(50),
     @TaskID UNIQUEIDENTIFIER
 AS
 BEGIN
@@ -210,7 +210,7 @@ IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_Task_GetByProject')
 GO
 
 CREATE PROCEDURE sp_Task_GetByProject
-    @SiteID UNIQUEIDENTIFIER,
+    @SiteID NVARCHAR(50),
     @ProjectID UNIQUEIDENTIFIER
 AS
 BEGIN
@@ -236,7 +236,7 @@ IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_Task_GetByAssignee')
 GO
 
 CREATE PROCEDURE sp_Task_GetByAssignee
-    @SiteID UNIQUEIDENTIFIER,
+    @SiteID NVARCHAR(50),
     @AssigneeID UNIQUEIDENTIFIER
 AS
 BEGIN
@@ -262,7 +262,7 @@ IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_Task_GetByStatus')
 GO
 
 CREATE PROCEDURE sp_Task_GetByStatus
-    @SiteID UNIQUEIDENTIFIER,
+    @SiteID NVARCHAR(50),
     @Status NVARCHAR(50)
 AS
 BEGIN
@@ -288,7 +288,7 @@ IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_Task_GetOverdue')
 GO
 
 CREATE PROCEDURE sp_Task_GetOverdue
-    @SiteID UNIQUEIDENTIFIER
+    @SiteID NVARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -316,7 +316,7 @@ IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_Task_GetDueSoon')
 GO
 
 CREATE PROCEDURE sp_Task_GetDueSoon
-    @SiteID UNIQUEIDENTIFIER,
+    @SiteID NVARCHAR(50),
     @Days INT = 7
 AS
 BEGIN

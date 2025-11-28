@@ -2,17 +2,18 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { 
-  Search, 
-  Filter, 
-  ChevronDown, 
-  Plus, 
-  MoreHorizontal, 
-  Eye, 
-  List, 
-  LayoutGrid, 
-  Settings, 
-  Share2 
+import {
+  Search,
+  Filter,
+  ChevronDown,
+  Plus,
+  MoreHorizontal,
+  Eye,
+  List,
+  LayoutGrid,
+  Settings,
+  Share2,
+  ArrowLeft
 } from 'lucide-react';
 
 interface WorkspaceToolbarProps {
@@ -26,6 +27,7 @@ interface WorkspaceToolbarProps {
   onSearchChange: (query: string) => void;
   onAddTask: () => void;
   onManageViews: () => void;
+  onBack: () => void;
 }
 
 export function WorkspaceToolbar({
@@ -38,7 +40,8 @@ export function WorkspaceToolbar({
   onGroupByChange,
   onSearchChange,
   onAddTask,
-  onManageViews
+  onManageViews,
+  onBack
 }: WorkspaceToolbarProps) {
   const [showGroupDropdown, setShowGroupDropdown] = useState(false);
   const groupDropdownRef = useRef<HTMLDivElement>(null);
@@ -66,9 +69,19 @@ export function WorkspaceToolbar({
   const visibleViews = availableViews.filter(view => visibleViewIds.has(view.id));
 
   return (
-    <div className="bg-[#292d39] border-b border-[#3a3f4f]">
+    <div className="bg-[#292d39] border-b border-[#3a3f4f] w-full">
       {/* View tabs */}
-      <div className="flex items-center gap-1 px-4 pt-3">
+      <div className="flex items-center gap-1 px-4 pt-3 w-full">
+        {/* Back button */}
+        <button
+          onClick={onBack}
+          className="px-3 py-2 rounded-t text-sm flex items-center gap-2 text-gray-400 hover:text-white hover:bg-[#3a3f4f] transition-colors"
+          title="Back to Main Page"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back</span>
+        </button>
+
         {visibleViews.map((view) => (
           <button
             key={view.id}
@@ -94,8 +107,8 @@ export function WorkspaceToolbar({
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-[#181c28]">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between px-4 py-3 bg-[#181c28] w-full">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -142,7 +155,7 @@ export function WorkspaceToolbar({
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button
             variant="outline"
             size="sm"

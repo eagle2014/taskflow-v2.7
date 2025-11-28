@@ -268,10 +268,7 @@ else
     app.UseHsts();
 }
 
-// Add global error handling middleware
-app.UseMiddleware<ErrorHandlerMiddleware>();
-
-// Enable CORS
+// Enable CORS FIRST (must be before other middleware)
 if (app.Environment.IsDevelopment())
 {
     app.UseCors("AllowReactApp");
@@ -280,6 +277,9 @@ else
 {
     app.UseCors("Production");
 }
+
+// Add global error handling middleware
+app.UseMiddleware<ErrorHandlerMiddleware>();
 
 // Use HTTPS redirection
 app.UseHttpsRedirection();

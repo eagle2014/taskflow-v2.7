@@ -36,10 +36,12 @@ import {
   Menu,
   Search,
   Filter,
-  MessageSquare
+  MessageSquare,
+  Layers
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { phasesApi, tasksApi, type Phase } from '../services/api';
 
 interface WorkspaceTask {
   id: string;
@@ -61,6 +63,8 @@ interface WorkspaceTask {
   subtasks?: WorkspaceTask[];
   parentId?: string;
   phase?: string;
+  phaseID?: string;
+  projectID?: string;
   impact?: 'low' | 'medium' | 'high';
   files?: number;
 }
@@ -113,6 +117,9 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
     timestamp: Date;
     type: 'comment' | 'activity';
   }>>([]);
+  const [phaseID, setPhaseID] = useState<string | undefined>(task?.phaseID);
+  const [phases, setPhases] = useState<Phase[]>([]);
+  const [loadingPhases, setLoadingPhases] = useState(false);
 
   // Save dialog size to localStorage whenever it changes
   useEffect(() => {
@@ -167,6 +174,35 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
     }
   }, [comments, task?.id]);
 
+  // Fetch phases when task projectID changes
+  useEffect(() => {
+    const fetchPhases = async () => {
+      if (!task?.projectID) {
+        setPhases([]);
+        return;
+      }
+
+      setLoadingPhases(true);
+      try {
+        const projectPhases = await phasesApi.getByProject(task.projectID);
+        setPhases(projectPhases);
+      } catch (error) {
+        console.error('Error fetching phases:', error);
+        toast.error('Failed to load phases');
+        setPhases([]);
+      } finally {
+        setLoadingPhases(false);
+      }
+    };
+
+    fetchPhases();
+  }, [task?.projectID]);
+
+  // Update phaseID when task changes
+  useEffect(() => {
+    setPhaseID(task?.phaseID);
+  }, [task?.phaseID]);
+
   // Close on ESC key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -208,6 +244,41 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
     toast.success(`Status changed to ${newStatus}`);
     if (onTaskUpdate) {
       onTaskUpdate({ ...task, status: newStatus as any });
+    }
+  };
+
+  const handlePhaseChange = async (newPhaseID: string) => {
+    if (!task?.id) return;
+
+    const selectedPhase = phases.find(p => p.phaseID === newPhaseID);
+    const previousPhaseID = phaseID;
+
+    // Optimistic update
+    setPhaseID(newPhaseID === 'none' ? undefined : newPhaseID);
+
+    try {
+      // Call API to persist the change
+      await tasksApi.update(task.id, {
+        phaseID: newPhaseID === 'none' ? null : newPhaseID
+      } as any);
+
+      // Update parent component's task state
+      if (newPhaseID === 'none') {
+        toast.success('Phase cleared');
+        if (onTaskUpdate) {
+          onTaskUpdate({ ...task, phaseID: undefined, phase: undefined });
+        }
+      } else if (selectedPhase) {
+        toast.success(`Phase changed to ${selectedPhase.name}`);
+        if (onTaskUpdate) {
+          onTaskUpdate({ ...task, phaseID: newPhaseID, phase: selectedPhase.name });
+        }
+      }
+    } catch (error) {
+      // Revert on error
+      setPhaseID(previousPhaseID);
+      console.error('Error updating phase:', error);
+      toast.error('Failed to update phase');
     }
   };
 
@@ -599,8 +670,38 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
                           />
                         </div>
 
-                        {/* Empty */}
-                        <div></div>
+                        {/* Phase Selector */}
+                        <div>
+                          <div className="text-xs text-[#838a9c] mb-2 flex items-center gap-1">
+                            <Layers className="w-3 h-3" />
+                            Phase
+                          </div>
+                          <Select
+                            value={phaseID || 'none'}
+                            onValueChange={handlePhaseChange}
+                            disabled={loadingPhases}
+                          >
+                            <SelectTrigger className="bg-[#292d39] border-[#3d4457] h-8">
+                              <SelectValue placeholder={loadingPhases ? 'Loading...' : 'Select phase'} />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#292d39] border-[#3d4457]">
+                              <SelectItem value="none" className="text-[#838a9c]">
+                                No Phase
+                              </SelectItem>
+                              {phases.map((phase) => (
+                                <SelectItem key={phase.phaseID} value={phase.phaseID} className="text-white">
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-2 h-2 rounded-full"
+                                      style={{ backgroundColor: phase.color || '#838a9c' }}
+                                    />
+                                    <span>{phase.name}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
 

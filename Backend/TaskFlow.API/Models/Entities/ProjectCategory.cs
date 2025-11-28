@@ -5,7 +5,7 @@ namespace TaskFlow.API.Models.Entities
     /// </summary>
     public class ProjectCategory
     {
-        public Guid CategoryID { get; set; }
+        public string CategoryID { get; set; } = string.Empty;
         public string SiteID { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }

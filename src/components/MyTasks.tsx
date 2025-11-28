@@ -1,21 +1,20 @@
 import { useState, useEffect } from 'react';
-import { User as UserType } from '../utils/mockApi';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Input } from './ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
-import { 
-  CheckSquare, 
-  Search, 
-  Filter, 
-  MoreHorizontal, 
+import {
+  CheckSquare,
+  Search,
+  Filter,
+  MoreHorizontal,
   Calendar,
   Clock,
   AlertTriangle,
   CheckCircle,
-  User,
+  User as UserIcon,
   Flag,
   Plus,
   RefreshCw,
@@ -28,22 +27,23 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useI18n } from '../utils/i18n/context';
-import { 
-  Task, 
-  Project, 
-  tasksApi, 
-  projectsApi, 
-  usersApi 
-} from '../utils/mockApi';
+import {
+  User,
+  Task,
+  Project,
+  tasksApi,
+  projectsApi,
+  usersApi
+} from '../services/api';
 import { toast } from 'sonner';
-import { NewTaskForm } from './NewTaskForm';
+import { NewTaskDialog } from './NewTaskDialog';
 import { EditTaskForm } from './EditTaskForm';
 
-export function MyTasks({ currentUser }: { currentUser: UserType | null }) {
+export function MyTasks({ currentUser }: { currentUser: User | null }) {
   const { t } = useI18n();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [users, setUsers] = useState<UserType[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,17 +60,20 @@ export function MyTasks({ currentUser }: { currentUser: UserType | null }) {
 
   const loadData = async () => {
     setLoading(true);
-    
+
     try {
-      console.log('🔍 Loading tasks for user:', currentUser?.id);
-      
-      if (currentUser?.id) {
-        const [tasksData, projectsData, usersData] = await Promise.all([
-          tasksApi.getTasksByAssignee(currentUser.id),
-          projectsApi.getProjects(),
-          usersApi.getUsers()
+      console.log('🔍 Loading tasks for user:', currentUser?.userID);
+
+      if (currentUser?.userID) {
+        const [allTasksData, projectsData, usersData] = await Promise.all([
+          tasksApi.getAll(),
+          projectsApi.getAll(),
+          usersApi.getAll()
         ]);
-        
+
+        // Filter tasks assigned to current user
+        const tasksData = allTasksData.filter(t => t.assigneeID === currentUser.userID);
+
         setTasks(tasksData);
         setProjects(projectsData);
         setUsers(usersData);
@@ -112,8 +115,8 @@ export function MyTasks({ currentUser }: { currentUser: UserType | null }) {
 
   const handleDeleteTask = async (taskId: string) => {
     try {
-      await tasksApi.deleteTask(taskId);
-      setTasks(prev => prev.filter(task => task.id !== taskId));
+      await tasksApi.delete(taskId);
+      setTasks(prev => prev.filter(task => task.taskID !== taskId));
       toast.success(t('message.taskDeleted'));
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -123,14 +126,14 @@ export function MyTasks({ currentUser }: { currentUser: UserType | null }) {
 
   const handleUpdateTaskStatus = async (taskId: string, newStatus: string) => {
     try {
-      const updatedTask = await tasksApi.updateTask(taskId, { 
-        status: newStatus as Task['status'] 
+      const updatedTask = await tasksApi.update(taskId, {
+        status: newStatus
       });
-      
-      setTasks(prev => prev.map(task => 
-        task.id === taskId ? updatedTask : task
+
+      setTasks(prev => prev.map(task =>
+        task.taskID === taskId ? updatedTask : task
       ));
-      
+
       toast.success(t('message.taskUpdated'));
     } catch (error) {
       console.error('Error updating task:', error);
@@ -144,8 +147,8 @@ export function MyTasks({ currentUser }: { currentUser: UserType | null }) {
   };
 
   const handleTaskUpdated = (updatedTask: Task) => {
-    setTasks(prev => prev.map(task => 
-      task.id === updatedTask.id ? updatedTask : task
+    setTasks(prev => prev.map(task =>
+      task.taskID === updatedTask.taskID ? updatedTask : task
     ));
     toast.success('Task updated successfully!');
   };
@@ -159,10 +162,10 @@ export function MyTasks({ currentUser }: { currentUser: UserType | null }) {
   // Filter tasks
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         task.description.toLowerCase().includes(searchQuery.toLowerCase());
+                         (task.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
     const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
-    
+
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
@@ -170,8 +173,8 @@ export function MyTasks({ currentUser }: { currentUser: UserType | null }) {
   const totalTasks = filteredTasks.length;
   const completedTasks = filteredTasks.filter(task => task.status === 'completed').length;
   const inProgressTasks = filteredTasks.filter(task => task.status === 'in_progress').length;
-  const overdueTasks = filteredTasks.filter(task => 
-    new Date(task.due_date) < new Date() && task.status !== 'completed'
+  const overdueTasks = filteredTasks.filter(task =>
+    task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed'
   ).length;
   
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -246,25 +249,28 @@ export function MyTasks({ currentUser }: { currentUser: UserType | null }) {
     }
   };
 
-  const getProjectName = (projectId: string) => {
-    const project = projects.find(p => p.id === projectId);
+  const getProjectName = (projectId: string | undefined) => {
+    if (!projectId) return 'No Project';
+    const project = projects.find(p => p.projectID === projectId);
     return project?.name || 'Unknown Project';
   };
 
-  const getUserName = (userId: string) => {
-    const user = users.find(u => u.id === userId);
+  const getUserName = (userId: string | undefined) => {
+    if (!userId) return 'Unassigned';
+    const user = users.find(u => u.userID === userId);
     return user?.name || 'Unknown User';
   };
 
-  const getUserAvatar = (userId: string) => {
-    const user = users.find(u => u.id === userId);
+  const getUserAvatar = (userId: string | undefined) => {
+    if (!userId) return '';
+    const user = users.find(u => u.userID === userId);
     return user?.avatar || '';
   };
 
   if (!currentUser) {
     return (
       <div className="text-center py-12">
-        <User className="w-16 h-16 text-[#838a9c] mx-auto mb-4 opacity-50" />
+        <UserIcon className="w-16 h-16 text-[#838a9c] mx-auto mb-4 opacity-50" />
         <h3 className="text-lg font-medium text-white mb-2">Please sign in</h3>
         <p className="text-[#838a9c]">You need to be signed in to view your tasks</p>
       </div>
@@ -450,29 +456,23 @@ export function MyTasks({ currentUser }: { currentUser: UserType | null }) {
             </thead>
             <tbody>
               {filteredTasks.map((task, index) => {
-                const progressPercent = task.estimated_hours > 0 
-                  ? Math.min(100, Math.round((task.actual_hours / task.estimated_hours) * 100))
-                  : 0;
-                
+                const progressPercent = (task.estimatedHours ?? 0) > 0
+                  ? Math.min(100, Math.round(((task.actualHours ?? 0) / (task.estimatedHours ?? 1)) * 100))
+                  : (task.progress ?? 0);
+
                 return (
-                  <tr 
-                    key={task.id} 
+                  <tr
+                    key={task.taskID}
                     className="border-t border-[#3d4457] hover:bg-[#3d4457]/30 cursor-pointer"
                     onDoubleClick={() => handleEditTask(task)}
                     title="Double-click to edit task"
                   >
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          index === 0 ? 'bg-blue-400' : 
-                          index === 1 ? 'bg-blue-400' : 
-                          index === 2 ? 'bg-blue-400' : 
-                          index === 3 ? 'bg-blue-400' : 
-                          'bg-blue-400'
-                        }`}></div>
+                        <div className="w-3 h-3 rounded-full bg-blue-400"></div>
                         <div>
                           <p className="text-white font-medium">{task.title}</p>
-                          <p className="text-[#838a9c] text-sm">{getProjectName(task.project_id)}</p>
+                          <p className="text-[#838a9c] text-sm">{getProjectName(task.projectID)}</p>
                         </div>
                       </div>
                     </td>
@@ -504,28 +504,30 @@ export function MyTasks({ currentUser }: { currentUser: UserType | null }) {
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
-                        <img 
-                          src={getUserAvatar(task.assignee_id)} 
-                          alt={getUserName(task.assignee_id)}
-                          className="w-6 h-6 rounded-full"
-                        />
-                        <span className="text-white text-sm">{getUserName(task.assignee_id)}</span>
+                        {getUserAvatar(task.assigneeID) && (
+                          <img
+                            src={getUserAvatar(task.assigneeID)}
+                            alt={getUserName(task.assigneeID)}
+                            className="w-6 h-6 rounded-full"
+                          />
+                        )}
+                        <span className="text-white text-sm">{getUserName(task.assigneeID)}</span>
                       </div>
                     </td>
                     <td className="py-4 px-4">
                       <span className="text-[#838a9c] text-sm">
-                        {format(new Date(task.created_at), 'dd/MM/yyyy')}
+                        {task.startDate ? format(new Date(task.startDate), 'dd/MM/yyyy') : format(new Date(task.createdAt), 'dd/MM/yyyy')}
                       </span>
                     </td>
                     <td className="py-4 px-4">
                       <span className="text-[#838a9c] text-sm">
-                        {format(new Date(task.due_date), 'dd/MM/yyyy')}
+                        {task.dueDate ? format(new Date(task.dueDate), 'dd/MM/yyyy') : '-'}
                       </span>
                     </td>
                     <td className="py-4 px-4">
-                      <span className="text-white text-sm">{task.actual_hours}h</span>
+                      <span className="text-white text-sm">{task.actualHours ?? 0}h</span>
                       <br />
-                      <span className="text-[#838a9c] text-xs">/{task.estimated_hours}h</span>
+                      <span className="text-[#838a9c] text-xs">/{task.estimatedHours ?? 0}h</span>
                     </td>
                     <td className="py-4 px-4">
                       <DropdownMenu>
@@ -542,22 +544,22 @@ export function MyTasks({ currentUser }: { currentUser: UserType | null }) {
                             <Edit2 className="w-4 h-4 mr-2" />
                             Edit Task
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleUpdateTaskStatus(task.id, 'in_progress')}
+                          <DropdownMenuItem
+                            onClick={() => handleUpdateTaskStatus(task.taskID, 'in_progress')}
                             className="text-white hover:bg-[#3d4457]"
                           >
                             <CheckSquare className="w-4 h-4 mr-2" />
                             Mark In Progress
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleUpdateTaskStatus(task.id, 'completed')}
+                          <DropdownMenuItem
+                            onClick={() => handleUpdateTaskStatus(task.taskID, 'completed')}
                             className="text-white hover:bg-[#3d4457]"
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
                             Mark Complete
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteTask(task.id)}
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteTask(task.taskID)}
                             className="text-red-400 hover:bg-[#3d4457]"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
@@ -595,7 +597,7 @@ export function MyTasks({ currentUser }: { currentUser: UserType | null }) {
 
       {/* New Task Modal */}
       {showNewTaskForm && (
-        <NewTaskForm 
+        <NewTaskDialog
           currentUser={currentUser}
           onTaskCreated={handleTaskCreated}
           onCancel={() => setShowNewTaskForm(false)}

@@ -23,14 +23,14 @@ import { useI18n } from '../utils/i18n/context';
 import { NewProjectForm } from './NewProjectForm';
 import { KanbanBoard } from './KanbanBoard';
 import { ProjectDetail } from './ProjectDetail';
-import { 
-  User as UserType, 
-  Project, 
-  projectsApi, 
+import {
+  User,
+  Project,
+  Category,
+  projectsApi,
   usersApi,
-  categoriesApi,
-  Category
-} from '../utils/mockApi';
+  categoriesApi
+} from '../services/api';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import {
@@ -53,13 +53,13 @@ import {
 interface ProjectsProps {
   onNavigate: (view: string) => void;
   onSelectProject: (project: any) => void;
-  currentUser: UserType | null;
+  currentUser: User | null;
 }
 
 export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsProps) {
   const { t } = useI18n();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [users, setUsers] = useState<UserType[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewProject, setShowNewProject] = useState(false);
@@ -80,9 +80,9 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
     try {
       setLoading(true);
       const [projectsData, usersData, categoriesData] = await Promise.all([
-        projectsApi.getProjects(),
-        usersApi.getUsers(),
-        categoriesApi.getCategories()
+        projectsApi.getAll(),
+        usersApi.getAll(),
+        categoriesApi.getAll()
       ]);
       
       // Ensure all projects have members array
@@ -104,12 +104,11 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
 
   const handleCreateProject = async (projectData: any) => {
     try {
-      const newProject = await projectsApi.createProject({
+      const newProject = await projectsApi.create({
         ...projectData,
-        owner_id: currentUser?.id || '1',
-        members: [currentUser?.id || '1']
+        createdBy: currentUser?.userID || ''
       });
-      
+
       setProjects(prev => [newProject, ...prev]);
       setShowNewProject(false);
       toast.success(t('message.projectCreated'));
@@ -121,10 +120,10 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
 
   const handleUpdateProject = async (projectData: any) => {
     if (!editingProject) return;
-    
+
     try {
-      const updatedProject = await projectsApi.updateProject(editingProject.id, projectData);
-      setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
+      const updatedProject = await projectsApi.update(editingProject.projectID, projectData);
+      setProjects(prev => prev.map(p => p.projectID === updatedProject.projectID ? updatedProject : p));
       setEditingProject(null);
       toast.success('Project updated successfully');
     } catch (error) {
@@ -135,15 +134,15 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
 
   const handleDeleteProject = async () => {
     if (!deletingProject) return;
-    
+
     try {
-      await projectsApi.deleteProject(deletingProject.id);
-      setProjects(prev => prev.filter(p => p.id !== deletingProject.id));
+      await projectsApi.delete(deletingProject.projectID);
+      setProjects(prev => prev.filter(p => p.projectID !== deletingProject.projectID));
       setDeletingProject(null);
       toast.success('Project deleted successfully');
-      
+
       // If we're viewing the deleted project, go back to list
-      if (selectedProject?.id === deletingProject.id) {
+      if (selectedProject?.projectID === deletingProject.projectID) {
         setSelectedProject(null);
       }
     } catch (error) {
@@ -173,10 +172,10 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
   // Filter projects based on search and filters
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         project.description.toLowerCase().includes(searchQuery.toLowerCase());
+                         (project.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === 'all' || project.status === filterStatus;
-    const matchesCategory = filterCategory === 'all' || project.category === filterCategory;
-    
+    const matchesCategory = filterCategory === 'all' || project.categoryID === filterCategory;
+
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
@@ -210,8 +209,9 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
     }
   };
 
-  const getCategoryInfo = (categoryName: string) => {
-    return categories.find(cat => cat.name === categoryName) || { name: categoryName, color: '#838a9c' };
+  const getCategoryInfo = (categoryID: string | undefined) => {
+    if (!categoryID) return { name: 'Uncategorized', color: '#838a9c', categoryID: '' };
+    return categories.find(cat => cat.categoryID === categoryID) || { name: 'Unknown', color: '#838a9c', categoryID };
   };
 
   if (!currentUser) {
@@ -363,8 +363,8 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
         >
           <option value="all">All Categories</option>
           {categories.map(category => (
-            <option key={category.id} value={category.name}>
-              {t(`category.${category.name}`)}
+            <option key={category.categoryID} value={category.categoryID}>
+              {category.name}
             </option>
           ))}
         </select>
@@ -373,13 +373,13 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
       {/* Projects Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProjects.map((project) => {
-          const owner = users.find(u => u.id === project.owner_id);
-          const categoryInfo = getCategoryInfo(project.category);
-          const memberUsers = users.filter(u => (project.members || []).includes(u.id));
-          
+          const owner = users.find(u => u.userID === project.createdBy);
+          const categoryInfo = getCategoryInfo(project.categoryID);
+          const memberUsers = users.filter(u => (project.members || []).includes(u.userID));
+
           return (
-            <Card 
-              key={project.id} 
+            <Card
+              key={project.projectID}
               className="bg-[#292d39] border-[#3d4457] p-6 hover-card cursor-pointer group relative transition-all"
               onDoubleClick={() => handleProjectDoubleClick(project)}
               title="Double click to view project details"
@@ -388,7 +388,12 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="text-white text-lg mb-2">{project.name}</h3>
+                    <h3 className="text-white text-lg mb-2">
+                      <span className="text-[#0394ff] font-mono text-sm mr-2">
+                        {project.projectID.substring(0, 8).toUpperCase()}
+                      </span>
+                      {project.name}
+                    </h3>
                     <p className="text-[#838a9c] text-sm line-clamp-2">{project.description}</p>
                   </div>
                   <DropdownMenu>
@@ -440,11 +445,11 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
                   <Badge className={`${getStatusColor(project.status)} px-2 py-1 text-xs rounded-full`}>
                     {project.status.replace('_', ' ')}
                   </Badge>
-                  <span className="text-sm text-[#838a9c]">{project.progress}%</span>
+                  <span className="text-sm text-[#838a9c]">{project.progress ?? 0}%</span>
                 </div>
 
                 {/* Progress Bar */}
-                <Progress value={project.progress} className="h-2" />
+                <Progress value={project.progress ?? 0} className="h-2" />
 
                 {/* Members */}
                 <div className="flex items-center justify-between">
@@ -452,7 +457,7 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
                     <Users className="w-4 h-4 text-[#838a9c]" />
                     <div className="flex -space-x-2">
                       {memberUsers.slice(0, 3).map((member) => (
-                        <Avatar key={member.id} className="w-6 h-6 border-2 border-[#292d39]">
+                        <Avatar key={member.userID} className="w-6 h-6 border-2 border-[#292d39]">
                           <AvatarImage src={member.avatar} alt={member.name} />
                           <AvatarFallback className="text-xs bg-[#0394ff] text-white">
                             {member.name.charAt(0)}
@@ -470,7 +475,7 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
                   {/* Due Date */}
                   <div className="flex items-center gap-1 text-xs text-[#838a9c]">
                     <Calendar className="w-3 h-3" />
-                    {new Date(project.due_date).toLocaleDateString()}
+                    {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'No due date'}
                   </div>
                 </div>
 

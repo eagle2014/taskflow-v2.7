@@ -39,10 +39,10 @@ import {
   DropdownMenuLabel,
 } from './ui/dropdown-menu';
 import { useI18n } from '../utils/i18n/context';
-import { Project, Task, User, tasksApi, usersApi } from '../utils/mockApi';
+import { Project, Task, User, tasksApi, usersApi } from '../services/api';
 import { toast } from 'sonner';
 import { AddInvoiceDialog } from './AddInvoiceDialog';
-import { NewTaskForm } from './NewTaskForm';
+import { NewTaskDialog } from './NewTaskDialog';
 import { EditTaskForm } from './EditTaskForm';
 
 interface ProjectDetailProps {
@@ -67,18 +67,19 @@ export function ProjectDetail({ project, onBack, currentUser }: ProjectDetailPro
 
   useEffect(() => {
     loadProjectData();
-  }, [project.id]);
+  }, [project.projectID || project.id]);
 
   const loadProjectData = async () => {
     try {
       setLoading(true);
+      const projectId = project.projectID || project.id;
       const [tasksData, usersData] = await Promise.all([
-        tasksApi.getTasks(),
-        usersApi.getUsers()
+        tasksApi.getAll(),
+        usersApi.getAll()
       ]);
-      
+
       // Filter tasks for this project
-      const projectTasks = tasksData.filter(task => task.project_id === project.id);
+      const projectTasks = tasksData.filter(task => (task.projectID || task.project_id) === projectId);
       setTasks(projectTasks);
       setUsers(usersData);
     } catch (error) {
@@ -90,7 +91,7 @@ export function ProjectDetail({ project, onBack, currentUser }: ProjectDetailPro
   };
 
   const getUserById = (userId: string) => {
-    return users.find(u => u.id === userId);
+    return users.find(u => u.userID === userId || u.id === userId);
   };
 
   const formatDate = (dateString: string) => {
@@ -171,12 +172,14 @@ export function ProjectDetail({ project, onBack, currentUser }: ProjectDetailPro
   const filteredTasks = tasks.filter(task => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
-    const assignee = getUserById(task.assignee_id);
-    const reporter = getUserById(task.reporter_id);
-    
+    const assigneeId = task.assigneeID || task.assignee_id;
+    const reporterId = task.createdBy || task.reporter_id;
+    const assignee = getUserById(assigneeId);
+    const reporter = getUserById(reporterId);
+
     return (
       task.title.toLowerCase().includes(query) ||
-      task.description?.toLowerCase().includes(query) ||
+      (task.description || '').toLowerCase().includes(query) ||
       assignee?.name.toLowerCase().includes(query) ||
       reporter?.name.toLowerCase().includes(query)
     );
@@ -353,12 +356,14 @@ export function ProjectDetail({ project, onBack, currentUser }: ProjectDetailPro
                       </tr>
                     ) : (
                       filteredTasks.map((task) => {
-                        const assignee = getUserById(task.assignee_id);
-                        const reporter = getUserById(task.reporter_id);
-                        
+                        const assigneeId = task.assigneeID || task.assignee_id;
+                        const reporterId = task.createdBy || task.reporter_id;
+                        const assignee = getUserById(assigneeId);
+                        const reporter = getUserById(reporterId);
+
                         return (
                           <tr
-                            key={task.id}
+                            key={task.taskID || task.id}
                             className="border-b border-[#3d4457] hover:bg-[#3d4457]/30 transition-colors cursor-pointer"
                             onDoubleClick={() => handleTaskDoubleClick(task)}
                             title="Double-click to edit task"
@@ -377,10 +382,10 @@ export function ProjectDetail({ project, onBack, currentUser }: ProjectDetailPro
                               )}
                             </td>
                             <td className="py-3 px-4 text-[#838a9c] whitespace-nowrap">
-                              {formatDate(task.created_at)}
+                              {formatDate(task.createdAt || task.created_at)}
                             </td>
                             <td className="py-3 px-4 text-[#838a9c] whitespace-nowrap">
-                              {formatDate(task.due_date)}
+                              {formatDate(task.dueDate || task.due_date)}
                             </td>
                             <td className="py-3 px-4 text-[#838a9c] whitespace-nowrap">-</td>
                             <td className="py-3 px-4 whitespace-nowrap">
@@ -474,7 +479,7 @@ export function ProjectDetail({ project, onBack, currentUser }: ProjectDetailPro
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-[#838a9c] text-xs mb-1">Project ID</div>
-                  <div className="text-white">{project.project_id || project.id}</div>
+                  <div className="text-white">{project.projectID || project.id}</div>
                 </div>
                 <div>
                   <div className="text-[#838a9c] text-xs mb-1">Category</div>
@@ -488,15 +493,15 @@ export function ProjectDetail({ project, onBack, currentUser }: ProjectDetailPro
                 </div>
                 <div>
                   <div className="text-[#838a9c] text-xs mb-1">Progress</div>
-                  <div className="text-white">{project.progress || 0}%</div>
+                  <div className="text-white">{project.progress ?? 0}%</div>
                 </div>
                 <div>
                   <div className="text-[#838a9c] text-xs mb-1">Start Date</div>
-                  <div className="text-white">{formatDate(project.start_date || project.created_at)}</div>
+                  <div className="text-white">{formatDate(project.startDate || project.createdAt || '')}</div>
                 </div>
                 <div>
                   <div className="text-[#838a9c] text-xs mb-1">Due Date</div>
-                  <div className="text-white">{formatDate(project.end_date || project.due_date)}</div>
+                  <div className="text-white">{formatDate(project.endDate || '')}</div>
                 </div>
               </div>
             </Card>
@@ -519,7 +524,7 @@ export function ProjectDetail({ project, onBack, currentUser }: ProjectDetailPro
                   <div className="flex-1">
                     <div className="text-white text-sm mb-1">{currentUser?.name || 'User'}</div>
                     <div className="text-[#838a9c] text-xs">Project created</div>
-                    <div className="text-[#838a9c] text-xs mt-1">{formatDate(project.created_at)}</div>
+                    <div className="text-[#838a9c] text-xs mt-1">{formatDate(project.createdAt || '')}</div>
                   </div>
                 </div>
                 <div className="text-center text-[#838a9c] text-sm py-4">
@@ -853,17 +858,17 @@ export function ProjectDetail({ project, onBack, currentUser }: ProjectDetailPro
       </div>
 
       {/* Add Invoice Dialog */}
-      <AddInvoiceDialog 
-        open={addInvoiceOpen} 
+      <AddInvoiceDialog
+        open={addInvoiceOpen}
         onOpenChange={setAddInvoiceOpen}
-        projectId={project.id}
+        projectId={project.projectID || project.id}
       />
 
       {/* New Task Form */}
       {showNewTaskForm && (
-        <NewTaskForm
+        <NewTaskDialog
           currentUser={currentUser}
-          projectId={project.id}
+          projectId={project.projectID || project.id}
           onTaskCreated={handleTaskCreated}
           onCancel={() => setShowNewTaskForm(false)}
         />
@@ -874,7 +879,7 @@ export function ProjectDetail({ project, onBack, currentUser }: ProjectDetailPro
         <EditTaskForm
           currentUser={currentUser}
           task={editingTask}
-          projectId={project.id}
+          projectId={project.projectID || project.id}
           onTaskUpdated={handleTaskUpdated}
           onCancel={() => setEditingTask(null)}
         />

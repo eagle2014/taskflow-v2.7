@@ -26,7 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { useI18n } from '../utils/i18n/context';
 import { eventsApi } from '../services/eventsAdapter';
-import { tasksApi } from '../utils/mockApi';
+import { tasksApi } from '../services/api';
 import { toast } from 'sonner';
 
 interface EventType {
@@ -112,7 +112,7 @@ export function Calendar({ currentUser }: CalendarProps) {
   }, [currentUser]);
 
   const loadCalendarData = async () => {
-    if (!currentUser?.id) {
+    if (!currentUser?.userID) {
       setLoading(false);
       return;
     }
@@ -121,7 +121,7 @@ export function Calendar({ currentUser }: CalendarProps) {
     try {
       const [eventsData, tasksData] = await Promise.all([
         eventsApi.getEvents(),
-        tasksApi.getTasks()
+        tasksApi.getAll()
       ]);
       
       // Transform events with colors based on type
@@ -232,8 +232,8 @@ export function Calendar({ currentUser }: CalendarProps) {
       const eventData = {
         title: newEvent.title,
         description: newEvent.description || '',
-        project_id: '1',
-        creator_id: currentUser?.id || '1',
+        projectID: '',
+        createdBy: currentUser?.userID || '',
         start_date: startDateTime,
         end_date: endDateTime,
         attendees: newEvent.attendees,

@@ -93,13 +93,51 @@ npm run build
 - Development: `http://localhost:3000` (configured in vite.config.ts)
 - Auto-open browser on dev server start
 
+## Layout Patterns
+
+### Full-Width Flex Layouts
+
+**Problem:** Nested flex containers often cause width constraints and unwanted overflow.
+
+**Solution Pattern:**
+1. Root container: Use `w-screen` for absolute viewport width
+2. Flex children: Always add `min-w-0` to prevent flex overflow
+3. Content areas: Explicitly declare `w-full` at each nesting level
+4. Scrollable areas: Combine `w-full` with `min-w-0` for proper overflow
+
+**Example:**
+```tsx
+<div className="h-screen w-screen flex flex-col">
+  <div className="flex-1 w-full flex overflow-hidden min-w-0">
+    <Sidebar className="w-60" />
+    <div className="flex-1 flex flex-col overflow-hidden min-w-0 w-full">
+      <Toolbar className="w-full" />
+      <div className="flex-1 overflow-hidden w-full min-w-0">
+        <Content className="h-full w-full min-w-0" />
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+**Key Rules:**
+- Flex parent with `flex-1` child → Child needs `min-w-0`
+- Nested flex layouts → Each level needs explicit `w-full`
+- Horizontal scroll → Use `min-w-fit` on content wrapper
+- Fixed sidebars → Use absolute widths (e.g., `w-60`)
+
+**Reference:** See `docs/layout-fix-report-20251126.md` for detailed implementation.
+
+---
+
 ## Future Considerations
 
 - Monitor SWC plugin updates for React 19 compatibility
 - Consider TypeScript strict mode configuration
 - Evaluate bundler alternatives (Turbopack, etc.) when stable
+- Add visual regression tests for layout patterns
 
 ---
 
-**Last Updated:** 2025-10-30
-**Version:** 1.0.0
+**Last Updated:** 2025-11-26
+**Version:** 1.1.0

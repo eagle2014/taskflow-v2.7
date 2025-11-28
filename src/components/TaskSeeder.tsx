@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Database, Loader2 } from 'lucide-react';
-import { User } from '../utils/mockApi';
+import { User } from '../services/api';
 
 interface TaskSeederProps {
   currentUser: User | null;

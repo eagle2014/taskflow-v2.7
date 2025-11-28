@@ -52,7 +52,7 @@ namespace TaskFlow.API.Controllers
         /// <param name="id">Category ID</param>
         /// <returns>Category details</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<CategoryDto>>> GetById(Guid id)
+        public async Task<ActionResult<ApiResponse<CategoryDto>>> GetById(string id)
         {
             try
             {
@@ -89,7 +89,7 @@ namespace TaskFlow.API.Controllers
 
                 var category = new ProjectCategory
                 {
-                    CategoryID = Guid.NewGuid(),
+                    CategoryID = $"CAT{DateTime.UtcNow.Ticks.ToString().Substring(0, 10)}",
                     SiteID = siteId,
                     Name = createDto.Name,
                     Description = createDto.Description,
@@ -121,7 +121,7 @@ namespace TaskFlow.API.Controllers
         /// <param name="updateDto">Category update data</param>
         /// <returns>Updated category</returns>
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<CategoryDto>>> Update(Guid id, [FromBody] UpdateCategoryDto updateDto)
+        public async Task<ActionResult<ApiResponse<CategoryDto>>> Update(string id, [FromBody] UpdateCategoryDto updateDto)
         {
             try
             {
@@ -163,7 +163,7 @@ namespace TaskFlow.API.Controllers
         /// <param name="id">Category ID</param>
         /// <returns>Success response</returns>
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id)
+        public async Task<ActionResult<ApiResponse<object>>> Delete(string id)
         {
             try
             {

@@ -6,7 +6,7 @@ import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { User, Settings as SettingsIcon, Database, Shield, Palette, Info, ExternalLink } from 'lucide-react';
 import { useI18n } from '../utils/i18n/context';
-import { User as UserType } from '../utils/mockApi';
+import { User as UserType } from '../services/api';
 import { TaskSeeder } from './TaskSeeder';
 
 interface SettingsProps {
@@ -25,8 +25,8 @@ export function Settings({ currentUser }: SettingsProps) {
     if (currentUser) {
       setUserInfo({
         email: currentUser.email || '',
-        created_at: currentUser.created_at || '',
-        last_sign_in_at: currentUser.last_active || '',
+        created_at: currentUser.createdAt || '',
+        last_sign_in_at: currentUser.lastActive || '',
       });
     }
   }, [currentUser]);

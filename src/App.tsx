@@ -5,7 +5,7 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
 import { Projects } from './components/Projects';
-import { ProjectWorkspace } from './components/ProjectWorkspace';
+import { ProjectWorkspace } from './components/ProjectWorkspaceV1';
 import { Calendar } from './components/Calendar';
 import { Reports } from './components/Reports';
 import { MyTasks } from './components/MyTasks';
@@ -100,7 +100,7 @@ function Workspace() {
   // Fullscreen mode for Project Workspace
   if (currentView === 'project-workspace') {
     return (
-      <div className="h-screen bg-[#181c28] text-white overflow-hidden flex">
+      <div className="h-screen w-screen bg-[#181c28] text-white overflow-hidden">
         <ProjectWorkspace
           currentUser={currentUser}
           onBack={() => setCurrentView('dashboard')}

@@ -9,7 +9,7 @@ namespace TaskFlow.API.Models.DTOs.Project
         public string SiteID { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public Guid CategoryID { get; set; }
+        public string? CategoryID { get; set; }
         public string Status { get; set; } = string.Empty;
         public string Priority { get; set; } = string.Empty;
         public DateTime? StartDate { get; set; }

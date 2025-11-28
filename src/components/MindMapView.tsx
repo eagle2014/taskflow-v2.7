@@ -35,8 +35,9 @@ interface MindMapPhase {
 }
 
 interface MindMapViewProps {
-  projectName: string;
-  phases: MindMapPhase[];
+  projectName?: string;
+  phases?: MindMapPhase[];
+  tasks?: any[];
   onTaskClick?: (taskId: string) => void;
   onTaskDoubleClick?: (task: MindMapTask) => void;
 }
@@ -46,7 +47,7 @@ interface NodePosition {
   y: number;
 }
 
-export function MindMapView({ projectName, phases, onTaskClick, onTaskDoubleClick }: MindMapViewProps) {
+export function MindMapView({ projectName = 'Project', phases = [], tasks, onTaskClick, onTaskDoubleClick }: MindMapViewProps) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);

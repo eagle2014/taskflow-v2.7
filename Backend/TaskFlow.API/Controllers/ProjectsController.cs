@@ -189,8 +189,8 @@ namespace TaskFlow.API.Controllers
                 if (updateDto.Description != null)
                     existingProject.Description = updateDto.Description;
 
-                if (updateDto.CategoryID.HasValue)
-                    existingProject.CategoryID = updateDto.CategoryID.Value;
+                if (!string.IsNullOrEmpty(updateDto.CategoryID))
+                    existingProject.CategoryID = updateDto.CategoryID;
 
                 if (!string.IsNullOrEmpty(updateDto.Status))
                     existingProject.Status = updateDto.Status;

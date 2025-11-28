@@ -50,7 +50,6 @@ namespace TaskFlow.API.Repositories
                 entity.Description,
                 entity.Color,
                 entity.Icon,
-                entity.Order,
                 entity.ProjectIDs,
                 entity.CreatedBy
             };
@@ -70,7 +69,6 @@ namespace TaskFlow.API.Repositories
                 entity.Description,
                 entity.Color,
                 entity.Icon,
-                entity.Order,
                 entity.ProjectIDs
             };
             await connection.ExecuteAsync("sp_Space_Update", parameters, commandType: System.Data.CommandType.StoredProcedure);

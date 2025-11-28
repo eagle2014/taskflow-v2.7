@@ -6,15 +6,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Card, CardHeader, CardContent, CardTitle } from './ui/card';
 import { X } from 'lucide-react';
 import { useI18n } from '../utils/i18n/context';
-import { 
-  categoriesApi, 
-  Category, 
-  Project 
-} from '../utils/mockApi';
+import {
+  categoriesApi,
+  Category,
+  Project
+} from '../services/api';
 import { toast } from 'sonner';
 
 interface NewProjectFormProps {
-  onSave: (project: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => void;
+  onSave: (project: Partial<Project>) => void;
   onCancel: () => void;
   initialData?: Project;
 }
@@ -26,18 +26,18 @@ export function NewProjectForm({ onSave, onCancel, initialData }: NewProjectForm
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     description: initialData?.description || '',
-    category: initialData?.category || '',
+    categoryID: initialData?.categoryID || '',
     priority: (initialData?.priority || 'medium') as 'low' | 'medium' | 'high',
     status: (initialData?.status || 'planning') as 'planning' | 'in_progress' | 'review' | 'completed' | 'on_hold',
     progress: initialData?.progress || 0,
-    due_date: initialData?.due_date ? new Date(initialData.due_date).toISOString().split('T')[0] : '',
-    owner_id: initialData?.owner_id || '',
+    endDate: (initialData?.endDate) ? new Date(initialData.endDate).toISOString().split('T')[0] : '',
+    createdBy: initialData?.createdBy || '',
     members: initialData?.members || [] as string[]
   });
 
   // Load categories
   useState(() => {
-    categoriesApi.getCategories().then(setCategories);
+    categoriesApi.getAll().then(setCategories);
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,15 +50,19 @@ export function NewProjectForm({ onSave, onCancel, initialData }: NewProjectForm
 
     setLoading(true);
     try {
-      const dueDate = formData.due_date 
-        ? new Date(formData.due_date).toISOString()
+      const endDate = formData.endDate
+        ? new Date(formData.endDate).toISOString()
         : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // Default to 30 days from now
 
       onSave({
-        ...formData,
-        due_date: dueDate,
+        name: formData.name,
+        description: formData.description,
+        categoryID: formData.categoryID,
+        priority: formData.priority,
+        status: formData.status,
+        endDate: endDate,
         progress: 0,
-        owner_id: '', // Will be set by parent component
+        createdBy: '', // Will be set by parent component
         members: [] // Will be set by parent component
       });
     } catch (error) {
@@ -112,17 +116,17 @@ export function NewProjectForm({ onSave, onCancel, initialData }: NewProjectForm
                 <label className="text-sm font-medium text-white">
                   {t('projects.category')}
                 </label>
-                <Select 
-                  value={formData.category} 
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                <Select
+                  value={formData.categoryID}
+                  onValueChange={(value) => setFormData({ ...formData, categoryID: value })}
                 >
                   <SelectTrigger className="bg-[#3d4457] border-[#3d4457] text-white">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent className="bg-[#292d39] border-[#3d4457]">
                     {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.name} className="text-white">
-                        {t(`category.${category.name}`)}
+                      <SelectItem key={category.categoryID} value={category.categoryID} className="text-white">
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -178,8 +182,8 @@ export function NewProjectForm({ onSave, onCancel, initialData }: NewProjectForm
                 </label>
                 <Input
                   type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                   className="bg-[#3d4457] border-[#3d4457] text-white focus:border-[#0394ff]"
                 />
               </div>

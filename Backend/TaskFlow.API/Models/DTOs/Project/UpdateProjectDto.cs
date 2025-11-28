@@ -11,7 +11,7 @@ namespace TaskFlow.API.Models.DTOs.Project
         public string? Name { get; set; }
 
         public string? Description { get; set; }
-        public Guid? CategoryID { get; set; }
+        public string? CategoryID { get; set; }
         public string? Status { get; set; }
         public string? Priority { get; set; }
         public DateTime? StartDate { get; set; }

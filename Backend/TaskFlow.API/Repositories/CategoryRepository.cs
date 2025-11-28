@@ -31,7 +31,7 @@ namespace TaskFlow.API.Repositories
             return await connection.QueryAsync<ProjectCategory>("sp_Category_GetAll", parameters, commandType: System.Data.CommandType.StoredProcedure);
         }
 
-        public async Task<ProjectCategory?> GetByIdAsync(string siteId, Guid id)
+        public async Task<ProjectCategory?> GetByIdAsync(string siteId, string id)
         {
             using var connection = GetConnection();
             var parameters = new { SiteID = siteId, CategoryID = id };
@@ -54,7 +54,7 @@ namespace TaskFlow.API.Repositories
             return entity;
         }
 
-        public async Task<ProjectCategory> UpdateAsync(string siteId, Guid id, ProjectCategory entity)
+        public async Task<ProjectCategory> UpdateAsync(string siteId, string id, ProjectCategory entity)
         {
             using var connection = GetConnection();
             var parameters = new
@@ -70,7 +70,7 @@ namespace TaskFlow.API.Repositories
             return entity;
         }
 
-        public async Task<bool> DeleteAsync(string siteId, Guid id)
+        public async Task<bool> DeleteAsync(string siteId, string id)
         {
             using var connection = GetConnection();
             var parameters = new { SiteID = siteId, CategoryID = id };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Task, User, usersApi, commentsApi, Comment, tasksApi } from '../utils/mockApi';
+import { Task, User, usersApi, commentsApi, Comment, tasksApi } from '../services/api';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -55,25 +55,28 @@ export function TaskDetailView({ task, currentUser, onClose, onTaskUpdated }: Ta
 
   useEffect(() => {
     loadData();
-  }, [task.id]);
+  }, [task.taskID || task.id]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      const taskId = task.taskID || task.id;
       const [commentsData, usersData] = await Promise.all([
-        commentsApi.getCommentsByTask(task.id),
-        usersApi.getUsers()
+        commentsApi.getByTask(taskId),
+        usersApi.getAll()
       ]);
 
       const commentsWithAuthors = commentsData.map(comment => ({
         ...comment,
-        author: usersData.find(u => u.id === comment.author_id)
+        author: usersData.find(u => u.userID === comment.authorID || u.userID === comment.author_id)
       }));
 
       setComments(commentsWithAuthors);
       setUsers(usersData);
-      setAssignee(usersData.find(u => u.id === task.assignee_id) || null);
-      setReporter(usersData.find(u => u.id === task.reporter_id) || null);
+      const assigneeId = task.assigneeID || task.assignee_id;
+      const reporterId = task.createdBy || task.reporter_id;
+      setAssignee(usersData.find(u => u.userID === assigneeId) || null);
+      setReporter(usersData.find(u => u.userID === reporterId) || null);
     } catch (error) {
       console.error('Failed to load task details:', error);
       toast.error('Failed to load task details');
@@ -86,9 +89,10 @@ export function TaskDetailView({ task, currentUser, onClose, onTaskUpdated }: Ta
     if (!newComment.trim()) return;
 
     try {
-      const comment = await commentsApi.createComment({
-        task_id: task.id,
-        author_id: currentUser.id,
+      const taskId = task.taskID || task.id;
+      const comment = await commentsApi.create({
+        taskID: taskId,
+        authorID: currentUser.userID,
         content: newComment
       });
 
@@ -247,7 +251,7 @@ export function TaskDetailView({ task, currentUser, onClose, onTaskUpdated }: Ta
             <Calendar className="w-4 h-4" />
             <span>Due Date</span>
           </div>
-          <div className="text-white text-sm">{formatDate(task.due_date)}</div>
+          <div className="text-white text-sm">{formatDate(task.dueDate || task.due_date || '')}</div>
         </div>
 
         {/* Time Tracking */}
@@ -257,10 +261,10 @@ export function TaskDetailView({ task, currentUser, onClose, onTaskUpdated }: Ta
             <span>Time Tracking</span>
           </div>
           <div className="text-white text-sm">
-            {task.actual_hours}h / {task.estimated_hours}h
-            {task.estimated_hours > 0 && (
+            {task.actualHours || task.actual_hours || 0}h / {task.estimatedHours || task.estimated_hours || 0}h
+            {(task.estimatedHours || task.estimated_hours || 0) > 0 && (
               <span className="text-[#838a9c] ml-2">
-                ({Math.round((task.actual_hours / task.estimated_hours) * 100)}%)
+                ({Math.round(((task.actualHours || task.actual_hours || 0) / (task.estimatedHours || task.estimated_hours || 1)) * 100)}%)
               </span>
             )}
           </div>
@@ -516,8 +520,8 @@ export function TaskDetailView({ task, currentUser, onClose, onTaskUpdated }: Ta
       {/* Metadata */}
       <Separator className="bg-[#3d4457]" />
       <div className="flex items-center justify-between text-xs text-[#838a9c]">
-        <div>Created: {formatDateTime(task.created_at)}</div>
-        <div>Updated: {formatDateTime(task.updated_at)}</div>
+        <div>Created: {formatDateTime(task.createdAt || task.created_at || '')}</div>
+        <div>Updated: {formatDateTime(task.updatedAt || task.updated_at || '')}</div>
       </div>
 
       {/* Link Documents Dialog */}

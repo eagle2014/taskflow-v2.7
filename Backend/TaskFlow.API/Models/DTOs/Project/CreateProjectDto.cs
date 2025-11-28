@@ -13,8 +13,7 @@ namespace TaskFlow.API.Models.DTOs.Project
 
         public string? Description { get; set; }
 
-        [Required(ErrorMessage = "Category is required")]
-        public Guid CategoryID { get; set; }
+        public string? CategoryID { get; set; }
 
         public string? Status { get; set; }
         public string? Priority { get; set; }

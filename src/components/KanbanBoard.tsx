@@ -5,9 +5,9 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
-import { tasksApi, usersApi, commentsApi, Task, User } from '../utils/mockApi';
+import { tasksApi, usersApi, commentsApi, Task, User, Project } from '../services/api';
 import { EditTaskForm } from './EditTaskForm';
-import { NewTaskForm } from './NewTaskForm';
+import { NewTaskDialog } from './NewTaskDialog';
 import { TaskDetailView } from './TaskDetailView';
 import { KanbanStats } from './KanbanStats';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -36,7 +36,7 @@ const priorityColors = {
 };
 
 interface KanbanBoardProps {
-  project?: any;
+  project?: Project;
   currentUser: User;
 }
 
@@ -67,27 +67,33 @@ export function KanbanBoard({ project, currentUser }: KanbanBoardProps) {
     try {
       setLoading(true);
       const [allTasks, allUsers] = await Promise.all([
-        tasksApi.getTasks(),
-        usersApi.getUsers()
+        tasksApi.getAll(),
+        usersApi.getAll()
       ]);
 
       // Filter tasks by project if specified
-      const filteredTasks = project 
-        ? allTasks.filter(task => task.project_id === project.id)
+      const filteredTasks = project
+        ? allTasks.filter(task => task.projectID === project.projectID)
         : allTasks;
 
       // Load comment counts for each task
       const tasksWithDetails = await Promise.all(
         filteredTasks.map(async (task) => {
-          const assignee = allUsers.find(u => u.id === task.assignee_id);
-          const reporter = allUsers.find(u => u.id === task.reporter_id);
-          const comments = await commentsApi.getCommentsByTask(task.id);
-          
+          const assignee = allUsers.find(u => u.userID === task.assigneeID);
+          const reporter = allUsers.find(u => u.userID === task.createdBy);
+          let commentCount = 0;
+          try {
+            const comments = await commentsApi.getByTask(task.taskID);
+            commentCount = comments.length;
+          } catch {
+            // Ignore comment loading errors
+          }
+
           return {
             ...task,
             assignee,
             reporter,
-            commentCount: comments.length
+            commentCount
           };
         })
       );
@@ -133,12 +139,12 @@ export function KanbanBoard({ project, currentUser }: KanbanBoardProps) {
 
     try {
       // Update task status
-      await tasksApi.updateTask(draggedTask.id, { status: targetStatus as Task['status'] });
-      
+      await tasksApi.update(draggedTask.taskID, { status: targetStatus });
+
       // Update local state
-      setTasks(prev => prev.map(task => 
-        task.id === draggedTask.id 
-          ? { ...task, status: targetStatus as Task['status'] }
+      setTasks(prev => prev.map(task =>
+        task.taskID === draggedTask.taskID
+          ? { ...task, status: targetStatus }
           : task
       ));
 
@@ -156,8 +162,8 @@ export function KanbanBoard({ project, currentUser }: KanbanBoardProps) {
   };
 
   const handleTaskUpdated = (updatedTask: Task) => {
-    setTasks(prev => prev.map(task => 
-      task.id === updatedTask.id 
+    setTasks(prev => prev.map(task =>
+      task.taskID === updatedTask.taskID
         ? { ...task, ...updatedTask }
         : task
     ));
@@ -166,8 +172,8 @@ export function KanbanBoard({ project, currentUser }: KanbanBoardProps) {
 
   const handleDeleteTask = async (taskId: string) => {
     try {
-      await tasksApi.deleteTask(taskId);
-      setTasks(prev => prev.filter(task => task.id !== taskId));
+      await tasksApi.delete(taskId);
+      setTasks(prev => prev.filter(task => task.taskID !== taskId));
       toast.success('Task deleted successfully');
     } catch (error) {
       console.error('Failed to delete task:', error);
@@ -182,21 +188,21 @@ export function KanbanBoard({ project, currentUser }: KanbanBoardProps) {
     }
 
     try {
-      const newTask = await tasksApi.createTask({
+      const newTask = await tasksApi.create({
         title: quickTaskTitle,
         description: '',
-        project_id: project?.id || '1',
-        assignee_id: currentUser.id,
-        reporter_id: currentUser.id,
+        projectID: project?.projectID || '',
+        assigneeID: currentUser.userID,
         priority: 'medium',
-        status: columnStatus as Task['status'],
-        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-        estimated_hours: 0,
-        actual_hours: 0
+        status: columnStatus,
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+        estimatedHours: 0,
+        actualHours: 0,
+        createdBy: currentUser.userID
       });
 
-      const assignee = users.find(u => u.id === newTask.assignee_id);
-      const reporter = users.find(u => u.id === newTask.reporter_id);
+      const assignee = users.find(u => u.userID === newTask.assigneeID);
+      const reporter = users.find(u => u.userID === newTask.createdBy);
 
       setTasks(prev => [...prev, { ...newTask, assignee, reporter, commentCount: 0 }]);
       setQuickTaskTitle('');
@@ -304,8 +310,8 @@ export function KanbanBoard({ project, currentUser }: KanbanBoardProps) {
                   }}
                 >
                   {columnTasks.map((task) => (
-                    <Card 
-                      key={task.id}
+                    <Card
+                      key={task.taskID}
                       className="bg-[#292d39] border-[#3d4457] p-4 cursor-move hover:shadow-lg hover:border-[#0394ff]/50 transition-all duration-200 group"
                       draggable
                       onDragStart={() => handleDragStart(task)}
@@ -328,15 +334,15 @@ export function KanbanBoard({ project, currentUser }: KanbanBoardProps) {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="bg-[#292d39] border-[#3d4457]">
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => handleTaskDoubleClick(task)}
                                 className="text-white hover:bg-[#3d4457] cursor-pointer"
                               >
                                 <Edit2 className="h-3 w-3 mr-2" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteTask(task.id)}
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteTask(task.taskID)}
                                 className="text-red-400 hover:bg-[#3d4457] cursor-pointer"
                               >
                                 <Trash2 className="h-3 w-3 mr-2" />
@@ -351,18 +357,18 @@ export function KanbanBoard({ project, currentUser }: KanbanBoardProps) {
                           <div className="flex items-center gap-2">
                             {/* Assignee Avatar */}
                             {task.assignee && (
-                              <div 
+                              <div
                                 className="w-6 h-6 bg-gradient-to-br from-[#0394ff] to-[#0570cd] rounded-full flex items-center justify-center text-white"
                                 title={task.assignee.name}
                               >
                                 {task.assignee.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                               </div>
                             )}
-                            
+
                             {/* Priority Flag */}
-                            <Flag className={`h-3 w-3 ${priorityColors[task.priority]}`} />
+                            <Flag className={`h-3 w-3 ${priorityColors[task.priority as keyof typeof priorityColors] || 'text-gray-400'}`} />
                           </div>
-                          
+
                           <div className="flex items-center gap-3">
                             {/* Comment Count */}
                             {task.commentCount ? (
@@ -373,19 +379,21 @@ export function KanbanBoard({ project, currentUser }: KanbanBoardProps) {
                             ) : null}
 
                             {/* Due Date */}
-                            <div className={`flex items-center gap-1 ${
-                              isOverdue(task.due_date) && task.status !== 'completed'
-                                ? 'text-red-400' 
-                                : 'text-[#838a9c]'
-                            }`}>
-                              <Calendar className="h-3 w-3" />
-                              <span>
-                                {new Date(task.due_date).toLocaleDateString('en-US', { 
-                                  month: 'short', 
-                                  day: 'numeric' 
-                                })}
-                              </span>
-                            </div>
+                            {task.dueDate && (
+                              <div className={`flex items-center gap-1 ${
+                                isOverdue(task.dueDate) && task.status !== 'completed'
+                                  ? 'text-red-400'
+                                  : 'text-[#838a9c]'
+                              }`}>
+                                <Calendar className="h-3 w-3" />
+                                <span>
+                                  {new Date(task.dueDate).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -489,21 +497,17 @@ export function KanbanBoard({ project, currentUser }: KanbanBoardProps) {
       )}
 
       {/* New Task Dialog */}
-      <Dialog open={isNewTaskDialogOpen} onOpenChange={setIsNewTaskDialogOpen}>
-        <DialogContent className="bg-[#292d39] border-[#3d4457] text-white max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create New Task</DialogTitle>
-            <DialogDescription className="text-[#838a9c]">
-              Add a new task to your project
-            </DialogDescription>
-          </DialogHeader>
-          <NewTaskForm
-            onTaskCreated={handleTaskCreated}
-            defaultProjectId={project?.id}
-            defaultStatus={newTaskColumn as Task['status']}
-          />
-        </DialogContent>
-      </Dialog>
+      {isNewTaskDialogOpen && (
+        <NewTaskDialog
+          currentUser={currentUser}
+          onTaskCreated={(newTask) => {
+            handleTaskCreated(newTask);
+            setIsNewTaskDialogOpen(false);
+          }}
+          onCancel={() => setIsNewTaskDialogOpen(false)}
+          projectId={project?.projectID}
+        />
+      )}
     </>
   );
 }

@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
 import { useI18n } from '../utils/i18n/context';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { authApi, User } from '../utils/mockApi';
+import { authApi, User } from '../services/api';
 
 interface SimpleAuthProps {
   onAuthSuccess: (user: User) => void;

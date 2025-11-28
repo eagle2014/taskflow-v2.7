@@ -2,32 +2,26 @@ import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Progress } from './ui/progress';
-import { 
-  BarChart3, 
-  Calendar, 
-  CheckCircle, 
-  Clock, 
-  Rocket, 
-  Plus, 
-  TrendingUp, 
+import {
+  BarChart3,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Rocket,
+  Plus,
   Users,
-  AlertTriangle,
   ArrowRight,
-  Target,
-  Timer,
-  Activity,
-  Bell
+  Timer
 } from 'lucide-react';
 import { useI18n } from '../utils/i18n/context';
-import { 
-  User, 
-  Project, 
-  Task, 
-  projectsApi, 
-  tasksApi, 
-  usersApi 
-} from '../utils/mockApi';
+import {
+  User,
+  Project,
+  Task,
+  projectsApi,
+  tasksApi,
+  usersApi
+} from '../services/api';
 import { toast } from "sonner";
 
 interface DashboardProps {
@@ -50,11 +44,11 @@ export function Dashboard({ currentUser, onNavigate }: DashboardProps) {
     try {
       setLoading(true);
       const [projectsData, tasksData, usersData] = await Promise.all([
-        projectsApi.getProjects(),
-        tasksApi.getTasks(),
-        usersApi.getUsers()
+        projectsApi.getAll(),
+        tasksApi.getAll(),
+        usersApi.getAll()
       ]);
-      
+
       setProjects(projectsData);
       setTasks(tasksData);
       setUsers(usersData);
@@ -73,23 +67,23 @@ export function Dashboard({ currentUser, onNavigate }: DashboardProps) {
   // Calculate stats
   const stats = {
     totalProjects: projects.length,
-    activeProjects: projects.filter(p => p.status === 'in_progress').length,
+    activeProjects: projects.filter((p: Project) => p.status === 'in_progress').length,
     totalTasks: tasks.length,
-    completedTasks: tasks.filter(t => t.status === 'completed').length,
-    activeTasks: tasks.filter(t => t.status !== 'completed').length,
-    myTasks: tasks.filter(t => t.assignee_id === currentUser.id).length,
+    completedTasks: tasks.filter((t: Task) => t.status === 'completed').length,
+    activeTasks: tasks.filter((t: Task) => t.status !== 'completed').length,
+    myTasks: tasks.filter((t: Task) => t.assigneeID === currentUser.userID).length,
     teamMembers: users.length
   };
 
   // Get recent projects
   const recentProjects = projects
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    .sort((a: Project, b: Project) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 5);
 
-  // Get upcoming tasks
+  // Get upcoming tasks (filter tasks with dueDate)
   const upcomingTasks = tasks
-    .filter(t => t.status !== 'completed' && new Date(t.due_date) > new Date())
-    .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+    .filter((t: Task) => t.status !== 'completed' && t.dueDate && new Date(t.dueDate) > new Date())
+    .sort((a: Task, b: Task) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
     .slice(0, 5);
 
   const getPriorityColor = (priority: string) => {
@@ -232,8 +226,8 @@ export function Dashboard({ currentUser, onNavigate }: DashboardProps) {
           </div>
           
           <div className="space-y-4">
-            {recentProjects.map((project) => (
-              <div key={project.id} className="flex items-center justify-between p-3 bg-[#3d4457] rounded-lg">
+            {recentProjects.map((project: Project) => (
+              <div key={project.projectID} className="flex items-center justify-between p-3 bg-[#3d4457] rounded-lg">
                 <div className="flex-1">
                   <h4 className="font-medium text-white">{project.name}</h4>
                   <p className="text-sm text-[#838a9c] mt-1">{project.description}</p>
@@ -245,10 +239,6 @@ export function Dashboard({ currentUser, onNavigate }: DashboardProps) {
                       {project.status.replace('_', ' ')}
                     </span>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-[#838a9c]">{project.progress}%</div>
-                  <Progress value={project.progress} className="w-20 mt-1" />
                 </div>
               </div>
             ))}
@@ -278,14 +268,14 @@ export function Dashboard({ currentUser, onNavigate }: DashboardProps) {
           </div>
           
           <div className="space-y-4">
-            {upcomingTasks.map((task) => {
-              const assignee = users.find(u => u.id === task.assignee_id);
-              const daysUntilDue = Math.ceil(
-                (new Date(task.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-              );
-              
+            {upcomingTasks.map((task: Task) => {
+              const assignee = users.find((u: User) => u.userID === task.assigneeID);
+              const daysUntilDue = task.dueDate ? Math.ceil(
+                (new Date(task.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+              ) : 0;
+
               return (
-                <div key={task.id} className="flex items-center justify-between p-3 bg-[#3d4457] rounded-lg">
+                <div key={task.taskID} className="flex items-center justify-between p-3 bg-[#3d4457] rounded-lg">
                   <div className="flex-1">
                     <h4 className="font-medium text-white">{task.title}</h4>
                     <p className="text-sm text-[#838a9c] mt-1">{task.description}</p>

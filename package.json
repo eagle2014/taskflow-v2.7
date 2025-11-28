@@ -58,13 +58,24 @@
         "vite": "*"
     },
     "devDependencies": {
+        "@testing-library/jest-dom": "^6.9.1",
+        "@testing-library/react": "^16.3.0",
+        "@testing-library/user-event": "^14.6.1",
         "@types/node": "^20.10.0",
-        "@vitejs/plugin-react": "^5.1.0"
+        "@types/react": "^19.2.7",
+        "@types/react-dom": "^19.2.3",
+        "@vitejs/plugin-react": "^5.1.1",
+        "@vitest/coverage-v8": "^4.0.14",
+        "jsdom": "^27.2.0",
+        "vitest": "^4.0.14"
     },
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "test": "tsx tests/e2e-test.ts",
+        "test": "npx vitest",
+        "test:unit": "npx vitest run",
+        "test:watch": "npx vitest",
+        "test:coverage": "npx vitest run --coverage",
         "test:e2e": "tsx tests/e2e-test.ts",
         "test:docker": "powershell -ExecutionPolicy Bypass -File ./scripts/run-tests.ps1",
         "test:docker:bash": "bash ./scripts/run-tests.sh",

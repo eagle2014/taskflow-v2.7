@@ -2,7 +2,7 @@ import { Search, Bell, Settings, ChevronDown, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useI18n } from '../utils/i18n/context';
-import { User } from '../utils/mockApi';
+import { User } from '../services/api';
 
 interface HeaderProps {
   onSignOut: () => void;

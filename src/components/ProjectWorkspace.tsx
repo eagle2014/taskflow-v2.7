@@ -83,7 +83,7 @@ import {
   GripVertical,
   Check
 } from 'lucide-react';
-import { User, projectsApi, Project, tasksApi, Task, usersApi } from '../utils/mockApi';
+import { User, projectsApi, Project, tasksApi, Task, usersApi } from '../services/api';
 import { toast } from 'sonner';
 import { 
   workspaceUsers, 
@@ -1080,7 +1080,7 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
     
     const loadProjects = async () => {
       try {
-        const projectsData = await projectsApi.getProjects();
+        const projectsData = await projectsApi.getAll();
         
         // Check if "Mobile App Development" project exists
         let mobileAppProject = projectsData.find(p => p.name === 'Mobile App Development');
@@ -1393,7 +1393,7 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
           localStorage.setItem('taskflow_project_tasks', JSON.stringify(projectTasksData));
           
           // Reload projects to get the new project
-          const updatedProjects = await projectsApi.getProjects();
+          const updatedProjects = await projectsApi.getAll();
           setProjects(updatedProjects);
         } else if (needsSampleTasks) {
           // Project exists but no tasks - create sample tasks

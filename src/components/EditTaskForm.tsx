@@ -39,12 +39,14 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useI18n } from '../utils/i18n/context';
-import { 
-  tasksApi, 
-  projectsApi, 
+import {
+  tasksApi,
+  projectsApi,
   usersApi,
-  User
-} from '../utils/mockApi';
+  User,
+  Project,
+  Task
+} from '../services/api';
 import { toast } from 'sonner';
 
 interface EditTaskFormProps {
@@ -156,23 +158,23 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
     return { width: 1024, height: window.innerHeight * 0.85 };
   });
 
-  // Form data - initialize with task data
+  // Form data - initialize with task data (support both old snake_case and new camelCase)
   const [formData, setFormData] = useState<TaskFormData>({
     title: task?.title || '',
     description: task?.description || '',
-    project_id: task?.project_id || '',
+    project_id: task?.projectID || task?.project_id || '',
     parent_task_id: task?.parent_task_id || '',
     previous_task_id: task?.previous_task_id || '',
     phase: task?.phase || '',
     status: task?.status || 'todo',
     priority: task?.priority || 'medium',
-    assignee_id: task?.assignee_id || currentUser?.id || '',
+    assignee_id: task?.assigneeID || task?.assignee_id || currentUser?.userID || '',
     related_to: task?.related_to || '',
-    start_date: task?.start_date ? task.start_date.split('T')[0] : '',
+    start_date: (task?.startDate || task?.start_date) ? (task?.startDate || task?.start_date).split('T')[0] : '',
     start_time: task?.start_time || '09:00',
-    due_date: task?.due_date ? task.due_date.split('T')[0] : '',
+    due_date: (task?.dueDate || task?.due_date) ? (task?.dueDate || task?.due_date).split('T')[0] : '',
     due_time: task?.due_time || '17:00',
-    estimated_hours: task?.estimated_hours || 0,
+    estimated_hours: task?.estimatedHours || task?.estimated_hours || 0,
     tags: task?.tags || [],
     watchers: task?.watchers || []
   });
@@ -183,7 +185,7 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
     {
       id: 'subtask-1',
       title: 'Research competitor solutions',
-      assignee_id: currentUser?.id || '1',
+      assignee_id: currentUser?.userID || '',
       assignee_name: currentUser?.name || 'Current User',
       status: 'done',
       created_at: new Date().toISOString()
@@ -191,7 +193,7 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
     {
       id: 'subtask-2',
       title: 'Create wireframes for main dashboard',
-      assignee_id: currentUser?.id || '1',
+      assignee_id: currentUser?.userID || '',
       assignee_name: currentUser?.name || 'Current User',
       status: 'in-progress',
       created_at: new Date().toISOString()
@@ -199,7 +201,7 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
     {
       id: 'subtask-3',
       title: 'Review design system components',
-      assignee_id: currentUser?.id || '1',
+      assignee_id: currentUser?.userID || '',
       assignee_name: currentUser?.name || 'Current User',
       status: 'todo',
       created_at: new Date().toISOString()
@@ -309,20 +311,20 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
     try {
       setLoading(true);
       const [projectsData, usersData] = await Promise.all([
-        projectsApi.getProjects(),
-        usersApi.getUsers()
+        projectsApi.getAll(),
+        usersApi.getAll()
       ]);
       
       setProjects(projectsData);
       setUsers(usersData);
       
       // Load task comments if available
-      if (task?.id) {
+      if (task?.taskID || task?.id) {
         // Mock comments for now
         const mockComments: Comment[] = [
           {
             id: '1',
-            author_id: currentUser?.id || '1',
+            author_id: currentUser?.userID || '',
             author_name: currentUser?.name || 'Current User',
             author_avatar: currentUser?.avatar || '',
             content: 'Task is in progress...',
@@ -372,7 +374,7 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
       const newSubTask: SubTask = {
         id: Date.now().toString(),
         title: newSubTaskTitle.trim(),
-        assignee_id: currentUser?.id || '',
+        assignee_id: currentUser?.userID || '',
         assignee_name: currentUser?.name || '',
         status: 'todo',
         created_at: new Date().toISOString()
@@ -386,7 +388,7 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
     if (newComment.trim()) {
       const comment: Comment = {
         id: Date.now().toString(),
-        author_id: currentUser?.id || '',
+        author_id: currentUser?.userID || '',
         author_name: currentUser?.name || '',
         author_avatar: currentUser?.avatar || '',
         content: newComment.trim(),
@@ -415,27 +417,27 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
         return;
       }
 
-      // Prepare task data for update
+      // Prepare task data for update (using backend camelCase field names)
       const taskData = {
-        id: task.id,
+        taskID: task.taskID || task.id,
         title: formData.title.trim(),
         description: formData.description.trim(),
-        project_id: formData.project_id,
-        assignee_id: formData.assignee_id,
-        reporter_id: task.reporter_id || currentUser?.id,
+        projectID: formData.project_id,
+        assigneeID: formData.assignee_id,
+        createdBy: task.createdBy || task.reporter_id || currentUser?.userID,
         priority: formData.priority,
         status: formData.status,
-        estimated_hours: formData.estimated_hours,
-        actual_hours: task.actual_hours || 0,
-        due_date: formData.due_date ? `${formData.due_date}T${formData.due_time}:00Z` : null,
-        created_at: task.created_at,
-        updated_at: new Date().toISOString()
+        estimatedHours: formData.estimated_hours,
+        actualHours: task.actualHours || task.actual_hours || 0,
+        dueDate: formData.due_date ? `${formData.due_date}T${formData.due_time}:00Z` : undefined,
+        startDate: formData.start_date ? `${formData.start_date}T${formData.start_time}:00Z` : undefined,
+        progress: task.progress || 0
       };
 
       console.log('Updating task:', taskData);
 
       // Update task via API
-      const updatedTask = await tasksApi.updateTask(task.id, taskData);
+      const updatedTask = await tasksApi.update(task.taskID || task.id, taskData);
       
       setSuccess('Task updated successfully!');
       toast.success('Task updated successfully!');
@@ -496,12 +498,12 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
   ];
 
   const getProjectName = (projectId: string) => {
-    const project = projects.find((p: any) => p.id === projectId);
+    const project = projects.find((p: any) => p.projectID === projectId || p.id === projectId);
     return project?.name || 'Select Project';
   };
 
   const getUserName = (userId: string) => {
-    const user = users.find((u: any) => u.id === userId);
+    const user = users.find((u: any) => u.userID === userId || u.id === userId);
     return user?.name || 'Select User';
   };
 
@@ -689,7 +691,7 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
                     >
                       <option value="">Not set</option>
                       {users.map((user: any) => (
-                        <option key={user.id} value={user.id}>{user.name}</option>
+                        <option key={user.userID} value={user.userID}>{user.name}</option>
                       ))}
                     </select>
                   </div>
@@ -1036,7 +1038,7 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
                     >
                       <option value="">Select Project</option>
                       {projects.map((project: any) => (
-                        <option key={project.id} value={project.id}>{project.name}</option>
+                        <option key={project.projectID} value={project.projectID}>{project.name}</option>
                       ))}
                     </select>
                   </div>
@@ -1235,7 +1237,7 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
                     </div>
                     <div>
                       <Label className="text-[#838a9c] text-xs mb-1 block">Modified/Last Id</Label>
-                      <Input value={task?.id || ''} className="bg-[#3d4457] border-[#3d4457] text-white h-8 text-sm" disabled />
+                      <Input value={task?.taskID || task?.id || ''} className="bg-[#3d4457] border-[#3d4457] text-white h-8 text-sm" disabled />
                     </div>
                   </div>
                 </CollapsibleContent>
@@ -1279,7 +1281,7 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
 
                     <div>
                       <Label className="text-[#838a9c] text-xs mb-1 block">Total Time Spent</Label>
-                      <Input value={`${task?.actual_hours || 0}h`} className="bg-[#3d4457] border-[#3d4457] text-white h-8 text-sm" disabled />
+                      <Input value={`${task?.actualHours || task?.actual_hours || 0}h`} className="bg-[#3d4457] border-[#3d4457] text-white h-8 text-sm" disabled />
                     </div>
                     <div>
                       <Label className="text-[#838a9c] text-xs mb-1 block">Total Time Spent on Subtasks</Label>
@@ -1297,30 +1299,30 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
 
                     <div>
                       <Label className="text-[#838a9c] text-xs mb-1 block">Created Time</Label>
-                      <Input 
-                        value={task?.created_at ? new Date(task.created_at).toLocaleString('en-US', { 
-                          year: 'numeric', 
-                          month: '2-digit', 
-                          day: '2-digit', 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
+                      <Input
+                        value={(task?.createdAt || task?.created_at) ? new Date(task?.createdAt || task?.created_at).toLocaleString('en-US', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit'
                         }) : ''}
-                        className="bg-[#3d4457] border-[#3d4457] text-white h-8 text-sm" 
-                        disabled 
+                        className="bg-[#3d4457] border-[#3d4457] text-white h-8 text-sm"
+                        disabled
                       />
                     </div>
                     <div>
                       <Label className="text-[#838a9c] text-xs mb-1 block">Modified Time</Label>
-                      <Input 
-                        value={task?.updated_at ? new Date(task.updated_at).toLocaleString('en-US', { 
-                          year: 'numeric', 
-                          month: '2-digit', 
-                          day: '2-digit', 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
+                      <Input
+                        value={(task?.updatedAt || task?.updated_at) ? new Date(task?.updatedAt || task?.updated_at).toLocaleString('en-US', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit'
                         }) : ''}
-                        className="bg-[#3d4457] border-[#3d4457] text-white h-8 text-sm" 
-                        disabled 
+                        className="bg-[#3d4457] border-[#3d4457] text-white h-8 text-sm"
+                        disabled
                       />
                     </div>
 
@@ -1334,10 +1336,10 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
                     </div>
                     <div>
                       <Label className="text-[#838a9c] text-xs mb-1 block">Created By</Label>
-                      <Input 
-                        value={getUserName(task?.reporter_id || '')}
-                        className="bg-[#3d4457] border-[#3d4457] text-white h-8 text-sm" 
-                        disabled 
+                      <Input
+                        value={getUserName(task?.createdBy || task?.reporter_id || '')}
+                        className="bg-[#3d4457] border-[#3d4457] text-white h-8 text-sm"
+                        disabled
                       />
                     </div>
 
@@ -1347,10 +1349,10 @@ export function EditTaskForm({ currentUser, task, onTaskUpdated, onCancel, proje
                     </div>
                     <div>
                       <Label className="text-[#838a9c] text-xs mb-1 block">Task No</Label>
-                      <Input 
-                        value={task?.id ? `Task${task.id.slice(0, 6)}` : ''}
-                        className="bg-[#3d4457] border-[#3d4457] text-white h-8 text-sm" 
-                        disabled 
+                      <Input
+                        value={(task?.taskID || task?.id) ? `Task${(task?.taskID || task?.id).slice(0, 6)}` : ''}
+                        className="bg-[#3d4457] border-[#3d4457] text-white h-8 text-sm"
+                        disabled
                       />
                     </div>
                   </div>

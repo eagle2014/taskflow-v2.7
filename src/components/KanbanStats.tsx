@@ -1,5 +1,5 @@
 import { Card } from './ui/card';
-import { Task } from '../utils/mockApi';
+import { Task } from '../services/api';
 import { CheckCircle, Clock, AlertTriangle, TrendingUp } from 'lucide-react';
 
 interface KanbanStatsProps {
@@ -11,7 +11,7 @@ export function KanbanStats({ tasks }: KanbanStatsProps) {
     total: tasks.length,
     completed: tasks.filter(t => t.status === 'completed').length,
     inProgress: tasks.filter(t => t.status === 'in_progress').length,
-    overdue: tasks.filter(t => new Date(t.due_date) < new Date() && t.status !== 'completed').length,
+    overdue: tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'completed').length,
     completionRate: tasks.length > 0 
       ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100)
       : 0

@@ -47,10 +47,13 @@ export interface Project {
   name: string;
   description?: string;
   categoryID?: string;
+  category?: string; // Category name for display (optional, from join or mock)
   status: string;
   priority: string;
+  progress?: number; // Calculated from tasks (optional)
   startDate?: string;
   endDate?: string;
+  members?: string[]; // Member userIDs (optional)
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -435,6 +438,139 @@ export const tasksApi = {
   },
 };
 
+// ============================================================================
+// ADDITIONAL TYPES FOR MISSING APIs (Phase 3 & 4)
+// ============================================================================
+
+// Category types
+export interface Category {
+  categoryID: string;
+  siteID: string;
+  name: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCategoryRequest {
+  name: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+}
+
+export interface UpdateCategoryRequest {
+  name?: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+}
+
+// Comment types
+export interface Comment {
+  commentID: string;
+  siteID: string;
+  taskID: string;
+  userID: string;
+  content: string;
+  parentCommentID?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCommentRequest {
+  taskID: string;
+  content: string;
+  parentCommentID?: string;
+}
+
+export interface UpdateCommentRequest {
+  content: string;
+}
+
+// Space types
+export interface Space {
+  spaceID: string;
+  siteID: string;
+  projectID?: string;
+  name: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  order: number;
+  projectIDs?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSpaceRequest {
+  projectID?: string;
+  name: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  order?: number;
+  projectIDs?: string;
+}
+
+export interface UpdateSpaceRequest {
+  projectID?: string;
+  name?: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  order?: number;
+  projectIDs?: string;
+}
+
+// Phase types
+export interface Phase {
+  phaseID: string;
+  siteID: string;
+  projectID: string;
+  name: string;
+  description?: string;
+  color?: string;
+  order: number;
+  startDate?: string;
+  endDate?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePhaseRequest {
+  projectID: string;
+  name: string;
+  description?: string;
+  color?: string;
+  order?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface UpdatePhaseRequest {
+  name?: string;
+  description?: string;
+  color?: string;
+  order?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+// User update types
+export interface UpdateUserRequest {
+  name?: string;
+  email?: string;
+  role?: string;
+  status?: string;
+  avatar?: string;
+  password?: string;
+}
+
 // Event types matching backend DTOs
 export interface CalendarEvent {
   eventID: string;
@@ -539,10 +675,244 @@ export const eventsApi = {
   },
 };
 
+// ============================================================================
+// USERS API
+// ============================================================================
+export const usersApi = {
+  async getAll(): Promise<User[]> {
+    const response = await client.get<User[]>('/users');
+    return response.data || [];
+  },
+
+  async getById(id: string): Promise<User> {
+    const response = await client.get<User>(`/users/${id}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'User not found');
+  },
+
+  async update(id: string, user: UpdateUserRequest): Promise<User> {
+    const response = await client.put<User>(`/users/${id}`, user);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to update user');
+  },
+
+  async updatePassword(id: string, currentPassword: string, newPassword: string): Promise<void> {
+    const response = await client.put(`/users/${id}/password`, {
+      currentPassword,
+      newPassword,
+    });
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to update password');
+    }
+  },
+
+  async getByRole(role: string): Promise<User[]> {
+    const response = await client.get<User[]>(`/users/role/${role}`);
+    return response.data || [];
+  },
+};
+
+// ============================================================================
+// CATEGORIES API
+// ============================================================================
+export const categoriesApi = {
+  async getAll(): Promise<Category[]> {
+    const response = await client.get<Category[]>('/categories');
+    return response.data || [];
+  },
+
+  async getById(id: string): Promise<Category> {
+    const response = await client.get<Category>(`/categories/${id}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Category not found');
+  },
+
+  async create(category: CreateCategoryRequest): Promise<Category> {
+    const response = await client.post<Category>('/categories', category);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to create category');
+  },
+
+  async update(id: string, category: UpdateCategoryRequest): Promise<Category> {
+    const response = await client.put<Category>(`/categories/${id}`, category);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to update category');
+  },
+
+  async delete(id: string): Promise<void> {
+    const response = await client.delete(`/categories/${id}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete category');
+    }
+  },
+};
+
+// ============================================================================
+// COMMENTS API
+// ============================================================================
+export const commentsApi = {
+  async getByTask(taskId: string): Promise<Comment[]> {
+    const response = await client.get<Comment[]>(`/comments/task/${taskId}`);
+    return response.data || [];
+  },
+
+  async getById(id: string): Promise<Comment> {
+    const response = await client.get<Comment>(`/comments/${id}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Comment not found');
+  },
+
+  async create(comment: CreateCommentRequest): Promise<Comment> {
+    const response = await client.post<Comment>('/comments', comment);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to create comment');
+  },
+
+  async update(id: string, comment: UpdateCommentRequest): Promise<Comment> {
+    const response = await client.put<Comment>(`/comments/${id}`, comment);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to update comment');
+  },
+
+  async delete(id: string): Promise<void> {
+    const response = await client.delete(`/comments/${id}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete comment');
+    }
+  },
+};
+
+// ============================================================================
+// SPACES API
+// ============================================================================
+export const spacesApi = {
+  async getAll(): Promise<Space[]> {
+    const response = await client.get<Space[]>('/spaces');
+    return response.data || [];
+  },
+
+  async getById(id: string): Promise<Space> {
+    const response = await client.get<Space>(`/spaces/${id}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Space not found');
+  },
+
+  async getByProject(projectId: string): Promise<Space[]> {
+    const response = await client.get<Space[]>(`/spaces/project/${projectId}`);
+    return response.data || [];
+  },
+
+  async create(space: CreateSpaceRequest): Promise<Space> {
+    const response = await client.post<Space>('/spaces', space);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to create space');
+  },
+
+  async update(id: string, space: UpdateSpaceRequest): Promise<Space> {
+    const response = await client.put<Space>(`/spaces/${id}`, space);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to update space');
+  },
+
+  async delete(id: string): Promise<void> {
+    const response = await client.delete(`/spaces/${id}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete space');
+    }
+  },
+
+  async reorder(spaceIds: string[]): Promise<void> {
+    const response = await client.put('/spaces/reorder', { spaceIds });
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to reorder spaces');
+    }
+  },
+};
+
+// ============================================================================
+// PHASES API
+// ============================================================================
+export const phasesApi = {
+  async getAll(): Promise<Phase[]> {
+    const response = await client.get<Phase[]>('/phases');
+    return response.data || [];
+  },
+
+  async getById(id: string): Promise<Phase> {
+    const response = await client.get<Phase>(`/phases/${id}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Phase not found');
+  },
+
+  async getByProject(projectId: string): Promise<Phase[]> {
+    const response = await client.get<Phase[]>(`/phases/project/${projectId}`);
+    return response.data || [];
+  },
+
+  async create(phase: CreatePhaseRequest): Promise<Phase> {
+    const response = await client.post<Phase>('/phases', phase);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to create phase');
+  },
+
+  async update(id: string, phase: UpdatePhaseRequest): Promise<Phase> {
+    const response = await client.put<Phase>(`/phases/${id}`, phase);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to update phase');
+  },
+
+  async delete(id: string): Promise<void> {
+    const response = await client.delete(`/phases/${id}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete phase');
+    }
+  },
+
+  async reorder(projectId: string, phaseIds: string[]): Promise<void> {
+    const response = await client.put(`/phases/project/${projectId}/reorder`, { phaseIds });
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to reorder phases');
+    }
+  },
+};
+
 // Export all
 export default {
   auth: authApi,
   projects: projectsApi,
   tasks: tasksApi,
   events: eventsApi,
+  users: usersApi,
+  categories: categoriesApi,
+  comments: commentsApi,
+  spaces: spacesApi,
+  phases: phasesApi,
 };

@@ -70,6 +70,7 @@
     },
     server: {
       port: 5600,
+      strictPort: true,
       open: true,
     },
   });

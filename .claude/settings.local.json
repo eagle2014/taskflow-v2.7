@@ -13,13 +13,16 @@
       "Bash(powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"Start-Sleep -Seconds 30; Write-Host ''SQL Server should be ready now''\")",
       "Bash(docker exec:*)",
       "Bash(powershell.exe -Command \"docker exec taskflow-sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ''TaskFlow@2025!Strong'' -C -d TaskFlowDB_Dev -Q ''SELECT SiteID, SiteCode, SiteName FROM Sites''\")",
-      "Bash(powershell.exe:*)"
+      "Bash(powershell.exe:*)",
+      "Bash(npm install:*)",
+      "Bash(npx vitest run)",
+      "Bash(sqlcmd -S 'kiena.vietgoat.com,400' -U sa -P 'DungNT@3003it' -C -d DB_PMS -Q \"SET QUOTED_IDENTIFIER ON; UPDATE Users SET PasswordHash = ''$2a$11$fJe3FtG5zdoyTMnCY/EfBO37LutCcQZgV6rjnuyrf5.41QQIxX73a'' WHERE Email = ''john@acme.com''; SELECT @@ROWCOUNT as Updated;\")"
     ],
     "deny": [],
     "ask": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "human"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
