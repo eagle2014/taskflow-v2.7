@@ -24,6 +24,7 @@ namespace TaskFlow.API.Models.Entities
         public decimal? Budget { get; set; }
         public decimal? Spent { get; set; }
         public string? Tags { get; set; }
+        public string? SectionName { get; set; }
         public Guid CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }

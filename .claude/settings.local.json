@@ -16,7 +16,8 @@
       "Bash(powershell.exe:*)",
       "Bash(npm install:*)",
       "Bash(npx vitest run)",
-      "Bash(sqlcmd -S 'kiena.vietgoat.com,400' -U sa -P 'DungNT@3003it' -C -d DB_PMS -Q \"SET QUOTED_IDENTIFIER ON; UPDATE Users SET PasswordHash = ''$2a$11$fJe3FtG5zdoyTMnCY/EfBO37LutCcQZgV6rjnuyrf5.41QQIxX73a'' WHERE Email = ''john@acme.com''; SELECT @@ROWCOUNT as Updated;\")"
+      "Bash(sqlcmd -S 'kiena.vietgoat.com,400' -U sa -P 'DungNT@3003it' -C -d DB_PMS -Q \"SET QUOTED_IDENTIFIER ON; UPDATE Users SET PasswordHash = ''$2a$11$fJe3FtG5zdoyTMnCY/EfBO37LutCcQZgV6rjnuyrf5.41QQIxX73a'' WHERE Email = ''john@acme.com''; SELECT @@ROWCOUNT as Updated;\")",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

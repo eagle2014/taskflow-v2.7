@@ -1,9 +1,12 @@
 # Task Detail Enhancements Implementation Plan
 
 **Date**: 2025-11-28
-**Status**: Planning Complete
+**Status**: ⚠️ CODE REVIEW FINDINGS - Fixes Required Before Phase 2
 **Complexity**: Medium
-**Estimated Effort**: 6-8 hours
+**Estimated Effort**: 6-8 hours (original) + 2.5 hours (fixes)
+**Completion**: 75% (Phase 1 implemented, critical fixes needed)
+**Review Date**: 2025-11-29
+**Review Report**: See `docs/20251129-phase1-taskdetaildialog-review.md`
 
 ## Executive Summary
 
@@ -354,15 +357,56 @@ CREATE TABLE Comments (
 4. Comment deletion/editing allowed?
    - **Recommendation**: Phase 5 (future, soft delete only)
 
+## Code Review Findings (2025-11-29)
+
+### Phase 1 Implementation Status
+✅ **Completed**:
+- Created modular structure (9 files, 389 lines vs 1272 monolith)
+- All files under 150 lines
+- Build passes
+- shadcn/ui components used correctly
+- Tailwind CSS styling
+
+❌ **Critical Issues Found** (MUST FIX):
+1. **Type Safety** - 3 instances of `any` type (violates strict mode)
+2. **XSS Vulnerability** - ContentEditable without input sanitization
+3. **Accessibility** - Missing ARIA labels on all interactive elements
+4. **Error Handling** - No try/catch on callbacks
+5. **Performance** - No memoization (useCallback/memo)
+
+⚠️ **High Priority Warnings**:
+- Local state drift in TaskHeader (unused state)
+- Missing Escape key handler for edit cancel
+- No timezone handling in date parsing
+- Toast spam on rapid updates
+
+**Estimated Fix Time**: 2.5 hours
+
+**Files Affected**:
+- `src/components/TaskDetailDialog/types.ts` (type safety)
+- `src/components/TaskDetailDialog/TaskDetailDialog.tsx` (error handling, memoization)
+- `src/components/TaskDetailDialog/components/TaskHeader.tsx` (XSS, accessibility, state)
+- `src/components/TaskDetailDialog/components/TaskMetadata.tsx` (accessibility, memoization)
+- `src/components/TaskDetailDialog/fields/*.tsx` (accessibility, memoization)
+
 ## Next Steps
 
-1. Review plan with user
-2. Confirm backend Comment table doesn't exist yet
-3. Start with Phase 1 (lowest risk)
-4. Test each phase before next
+### Immediate (Before Phase 2)
+1. ✅ Fix type safety - Replace `any` with discriminated unions (30 min)
+2. ✅ Add XSS protection - Sanitize contentEditable input (15 min)
+3. ✅ Add ARIA labels - All interactive elements (45 min)
+4. ✅ Add error handling - Try/catch on callbacks (30 min)
+5. ✅ Add memoization - useCallback, memo (30 min)
+6. ⚠️ Write unit tests for field components (60 min)
+7. ⚠️ Accessibility audit with axe-core (30 min)
+
+### After Fixes Validated
+8. Start Phase 2 (AI Prompt Bar + Description Editor)
+9. Confirm backend Comment table status
+10. Test each phase before next
 
 ---
 
-**Total Estimated Time**: 8 hours
-**Recommended Approach**: Implement phases sequentially
-**Priority Order**: P1 (Assignee) → P2 (Dates) → P3 (Description) → P4 (Comments)
+**Total Estimated Time**: 8 hours (original) + 2.5 hours (fixes) + 1.5 hours (testing) = **12 hours**
+**Recommended Approach**: Fix critical issues → Test → Implement phases sequentially
+**Priority Order**: Fix Phase 1 Issues → P1 (Assignee) → P2 (Dates) → P3 (Description) → P4 (Comments)

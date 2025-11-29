@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { LogtoProvider } from '@logto/react';
+import { LogtoProvider, useLogto } from '@logto/react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -29,6 +29,7 @@ console.log('🔧 [App.tsx] Logto Config:', {
 
 // Main workspace component
 function Workspace() {
+  const { signOut: logtoSignOut } = useLogto();
   const [currentView, setCurrentView] = useState('dashboard');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,11 +49,23 @@ function Workspace() {
     }
   }, []);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    console.log('🔓 [App.tsx] Signing out...');
+
+    // Clear TaskFlow local storage tokens
     authApi.logout();
     setCurrentUser(null);
     setCurrentView('dashboard');
-    window.location.href = '/';
+
+    // Sign out from Logto to clear SSO session
+    try {
+      console.log('🔓 [App.tsx] Calling Logto signOut...');
+      await logtoSignOut(window.location.origin);
+    } catch (error) {
+      console.error('❌ [App.tsx] Error signing out from Logto:', error);
+      // Redirect anyway even if Logto signout fails
+      window.location.href = '/';
+    }
   };
 
   if (loading) {

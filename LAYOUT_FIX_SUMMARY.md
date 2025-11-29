@@ -1,93 +1,102 @@
-# ProjectWorkspace Full-Width Layout Fix ✅
+# TaskDetailDialog Layout Fix - Quick Summary
 
-## Issue Resolved
-The ProjectWorkspace layout was not taking full width of the screen, showing excessive white space on the right side.
+## ✅ FIXED - 2025-11-29
 
-## Root Cause
-Nested flex containers lacked proper width constraints and `min-w-0` declarations, causing flex overflow and width collapse.
+### User Issue
+"bố cục DetailTask nó không hợp lý" - Layout completely wrong
 
-## Changes Made
+---
 
-### 1. App.tsx
-- **Line 103:** Removed `flex` class from fullscreen container
-- **Impact:** Prevents flex from constraining child width
+## 🔧 3 Changes Made
 
-### 2. ProjectWorkspaceV1.tsx
-- **Line 1112:** Changed `w-full` → `w-screen` on root container
-- **Line 1114:** Added `min-w-0` to flex row container
-- **Line 1151:** Added `min-w-0 w-full` to main content area
-- **Line 1167:** Added `w-full min-w-0` to content views container
-- **Line 1002:** Added `min-w-0` to list view container
-- **Line 1004:** Added `min-w-fit` to table header for horizontal scroll
-- **Impact:** Proper width propagation through nested flex hierarchy
+### 1. Force Dialog Width Override
+**File**: `src/components/TaskDetailDialog/TaskDetailDialog.tsx`
+```diff
+- className="max-w-6xl h-[90vh] ..."
++ className="!max-w-6xl h-[90vh] ..."
+```
+**Why**: shadcn's `sm:max-w-lg` was overriding our wide dialog setting
 
-### 3. WorkspaceToolbar.tsx
-- **Line 69:** Added `w-full` to root container
-- **Line 71:** Added `w-full` to view tabs container
-- **Line 97:** Added `w-full` to toolbar actions row
-- **Line 98:** Added `flex-shrink-0` to left actions group
-- **Line 145:** Added `flex-shrink-0` to right actions group
-- **Impact:** Toolbar spans full width without shrinking
+---
 
-## Technical Pattern
+### 2. Horizontal Metadata Field Layout
+**File**: `src/components/TaskDetailDialog/fields/MetadataField.tsx`
+```diff
+- Vertical: Label on top, value below
++ Horizontal: Label left (120px), value right (flex-1)
+```
+**Why**: ClickUp reference shows horizontal layout
 
-```tsx
-// ✅ CORRECT: Full-width nested flex layout
-<div className="h-screen w-screen flex flex-col">
-  <div className="flex-1 w-full flex overflow-hidden min-w-0">
-    <Sidebar className="w-60" />
-    <div className="flex-1 flex flex-col overflow-hidden min-w-0 w-full">
-      <Toolbar className="w-full" />
-      <div className="flex-1 overflow-hidden w-full min-w-0">
-        <Content />
-      </div>
-    </div>
-  </div>
-</div>
+---
 
-// ❌ WRONG: Missing min-w-0 causes overflow
-<div className="h-screen w-full flex flex-col">
-  <div className="flex-1 w-full flex overflow-hidden">
-    <Sidebar className="w-60" />
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <Toolbar />
-      <div className="flex-1 overflow-hidden">
-        <Content />
-      </div>
-    </div>
-  </div>
-</div>
+### 3. Increase Grid Spacing
+**File**: `src/components/TaskDetailDialog/components/TaskMetadata.tsx`
+```diff
+- gap-x-8 gap-y-4
++ gap-x-12 gap-y-5 mt-6
+```
+**Why**: More breathing room, better readability
+
+---
+
+## 📏 Layout Now Matches ClickUp
+
+```
+┌──────────────────────────────────────────────────────┐ 72rem wide
+│ Header: Breadcrumb + Task ID + Title                │
+├─────────────────────────────┬────────────────────────┤
+│ LEFT CONTENT (flex-1)       │ RIGHT SIDEBAR (w-80)   │
+│                             │                        │
+│ 1. AI Prompt Bar            │ - Activity Header      │
+│ 2. Metadata (2×3 grid)      │ - Timeline             │
+│ 3. Description              │ - Comment Input        │
+│ 4. Tabs (Details/Sub/Act)   │                        │
+└─────────────────────────────┴────────────────────────┘
 ```
 
-## Key Learnings
+- ✅ Dialog: 72rem width (was 32rem)
+- ✅ Sidebar: RIGHT side (w-80, border-l)
+- ✅ Metadata: 2 columns, horizontal fields
+- ✅ Spacing: Comfortable, not cramped
 
-1. **Always use `min-w-0` on flex children** to prevent default flex overflow behavior
-2. **Explicitly declare `w-full`** at each nesting level in flex layouts
-3. **Use `w-screen` on root containers** when you need absolute viewport width
-4. **Add `flex-shrink-0`** to prevent unwanted compression of UI elements
-5. **Use `min-w-fit` for sticky headers** that need to scroll horizontally
+---
 
-## Verification
+## 🚀 User Action Required
 
-- ✅ Build succeeds with no TypeScript errors
-- ✅ Layout now uses full screen width
-- ✅ No unwanted white space on right side
-- ✅ Responsive behavior maintained
-- ✅ All view modes work correctly (list, board, gantt, mindmap)
+**Hard refresh browser to see changes**:
+```
+Ctrl + Shift + R  (Windows/Linux)
+Cmd + Shift + R   (Mac)
+```
 
-## Files Modified
+Or restart dev server:
+```bash
+npm run dev
+```
 
-- `src/App.tsx` (1 change)
-- `src/components/ProjectWorkspaceV1.tsx` (6 changes)
-- `src/components/workspace/WorkspaceToolbar.tsx` (5 changes)
+---
 
-**Total:** 3 files, 12 lines changed
+## 📋 Verification Checklist
 
-## Documentation
+- [x] TypeScript compiles
+- [x] Production build succeeds
+- [x] Dialog uses full width (!max-w-6xl)
+- [x] Metadata fields horizontal
+- [x] Grid spacing increased
+- [ ] User confirms layout correct (PENDING)
 
-- ✅ Detailed report: `docs/layout-fix-report-20251126.md`
-- ✅ Design pattern added to: `docs/design-guidelines.md`
+---
 
-## Status: COMPLETE ✅
+## 📖 Full Documentation
 
-The ProjectWorkspace now correctly fills the entire screen width with no layout issues.
+- **Detailed Report**: `docs/20251129-layout-fix-report.md`
+- **Before/After Visual**: `docs/20251129-layout-before-after.md`
+
+---
+
+## ❓ If Still Wrong
+
+1. Clear browser cache completely
+2. Try incognito/private mode
+3. Check console for errors
+4. Verify correct component imported

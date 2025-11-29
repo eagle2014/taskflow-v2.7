@@ -139,5 +139,169 @@ npm run build
 
 ---
 
-**Last Updated:** 2025-11-26
-**Version:** 1.1.0
+## ClickUp-Style Dark Theme Design System
+
+### Color Tokens
+
+**Background Layers:**
+- Primary BG: `#1a1d21` (main background)
+- Secondary BG: `#1f2330` (dialog/card background)
+- Tertiary BG: `#25282c` (elevated card background)
+- Input BG: `#292d39` (input fields, dropdowns)
+- Border: `#3d4457` (borders, dividers)
+- Hover BG: `#181c28` (hover states)
+
+**Text:**
+- Primary: `#ffffff` (white - headings, important text)
+- Secondary: `#838a9c` (gray - labels, descriptions)
+- Muted: `#6b7280` (extra muted text)
+
+**Accents:**
+- Primary (Purple): `#8b5cf6` (ClickUp brand, active states)
+- Primary Hover: `#7c66d9` (purple hover)
+- Blue: `#0394ff` (secondary actions, links)
+- Blue Hover: `#0570cd` (blue hover)
+
+**Status Colors:**
+- Green: `#10b981` (complete, success)
+- Yellow: `#f59e0b` (in-progress, warning)
+- Red: `#ef4444` (high priority, error)
+- Orange: `#f97316` (medium priority)
+
+### Typography
+
+**Font Sizes:**
+- Title: `text-2xl` (24px) - Task titles
+- Heading: `text-lg` (18px) - Section headings
+- Body: `text-sm` (14px) - Default body text
+- Label: `text-xs` (12px) - Field labels, metadata
+- Tiny: `text-[10px]` (10px) - Timestamps, badges
+
+**Font Weights:**
+- Semibold: `font-semibold` (600) - Headings
+- Medium: `font-medium` (500) - Labels
+- Normal: `font-normal` (400) - Body text
+
+### Component Patterns
+
+**Dialog Layout:**
+```tsx
+<Dialog className="bg-[#1f2330] border-2 border-[#3d4457]">
+  <Header className="border-b border-[#3d4457]" />
+  <Body className="flex">
+    <LeftContent className="flex-1 overflow-y-auto" />
+    <RightSidebar className="w-80 border-l border-[#3d4457]" />
+  </Body>
+</Dialog>
+```
+
+**Breadcrumb:**
+```tsx
+<nav className="text-sm text-[#838a9c]">
+  <span className="text-[#8b5cf6]">Space</span>
+  <ChevronRight className="w-4 h-4" />
+  <span>Project</span>
+  <ChevronRight className="w-4 h-4" />
+  <span>Phase</span>
+</nav>
+```
+
+**Status Pills:**
+```tsx
+// Complete
+<Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+  COMPLETE
+</Badge>
+
+// In Progress
+<Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+  IN PROGRESS
+</Badge>
+```
+
+**Tabs with Purple Underline:**
+```tsx
+<TabsList className="bg-transparent border-b border-[#3d4457]">
+  <TabsTrigger className="
+    bg-transparent
+    border-b-2
+    border-transparent
+    data-[state=active]:border-[#8b5cf6]
+    text-[#838a9c]
+    data-[state=active]:text-white
+  ">
+    Details
+  </TabsTrigger>
+</TabsList>
+```
+
+**AI Prompt Bar:**
+```tsx
+<div className="flex items-center gap-2 text-sm">
+  <Sparkles className="w-4 h-4 text-[#8b5cf6]" />
+  <span className="text-[#8b5cf6]">Ask Brain</span>
+  <span className="text-[#838a9c]">to write a description...</span>
+</div>
+```
+
+**Input Fields:**
+```tsx
+<Input className="
+  bg-[#292d39]
+  border-[#3d4457]
+  text-white
+  placeholder:text-[#838a9c]
+  focus:border-[#8b5cf6]
+  focus:ring-[#8b5cf6]
+" />
+```
+
+**Metadata Grid:**
+```tsx
+<div className="grid grid-cols-2 gap-x-8 gap-y-4">
+  <MetadataField
+    icon={<Icon className="w-3 h-3 text-[#838a9c]" />}
+    label="Field Name"
+    labelClassName="text-xs text-[#838a9c]"
+    value={<Value className="text-white" />}
+  />
+</div>
+```
+
+### Spacing Scale
+
+- `px-6 py-4` - Dialog padding
+- `gap-2` - Inline elements
+- `gap-4` - Related sections
+- `gap-6` - Major sections
+- `mb-3` - Small vertical spacing
+- `mb-4` - Medium vertical spacing
+- `mb-6` - Large vertical spacing
+
+### Interactive States
+
+**Hover:**
+- Background: `hover:bg-[#292d39]`
+- Text: `hover:text-white`
+- Border: `hover:border-[#8b5cf6]`
+
+**Focus:**
+- Ring: `focus:ring-2 focus:ring-[#8b5cf6]`
+- Border: `focus:border-[#8b5cf6]`
+
+**Active:**
+- Purple underline for tabs
+- Purple text for active items
+- Slightly darker background
+
+### Accessibility
+
+- Maintain 4.5:1 contrast ratio for text
+- Purple accents (#8b5cf6) pass WCAG AA on dark backgrounds
+- Focus states visible with purple ring
+- ARIA labels for all interactive elements
+
+---
+
+**Last Updated:** 2025-11-29
+**Version:** 1.2.0 (ClickUp Dark Theme)

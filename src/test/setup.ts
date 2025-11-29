@@ -1,5 +1,4 @@
-import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import { expect, afterEach, vi } from 'vitest';
 
 // Mock localStorage
 const localStorageMock = {
@@ -15,8 +14,8 @@ Object.defineProperty(window, 'localStorage', {
 // Mock fetch
 global.fetch = vi.fn();
 
-// Reset all mocks before each test
-beforeEach(() => {
+// Cleanup after each test
+afterEach(() => {
   vi.clearAllMocks();
   localStorageMock.getItem.mockReset();
   localStorageMock.setItem.mockReset();

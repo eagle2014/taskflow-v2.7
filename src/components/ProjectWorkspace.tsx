@@ -1726,37 +1726,56 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
         const users = await usersApi.getUsers();
         
         // Convert Task[] to WorkspaceTask[]
+        console.log('✅ Loaded tasks from API:', tasks.length);
+
         const workspaceTasks: WorkspaceTask[] = tasks.map(task => {
-          const assignee = users.find(u => u.id === task.assignee_id);
-          
+          // Fix: Use correct API field names (taskID, assigneeID, etc.)
+          const assignee = users.find(u => u.userID === task.assigneeID);
+
           // Map status from Task to WorkspaceTask
-          let workspaceStatus: 'todo' | 'in-progress' | 'ready' | 'done' = 'todo';
-          if (task.status === 'in_progress') workspaceStatus = 'in-progress';
-          else if (task.status === 'review') workspaceStatus = 'ready';
-          else if (task.status === 'completed') workspaceStatus = 'done';
-          else workspaceStatus = task.status as 'todo';
-          
+          let workspaceStatus: 'todo' | 'in-progress' | 'ready' | 'done' | 'in-review' | 'completed' | 'new' = 'todo';
+          const status = task.status?.toLowerCase().replace(/\s+/g, '-') || 'todo';
+          if (status === 'in-progress' || status === 'inprogress') workspaceStatus = 'in-progress';
+          else if (status === 'ready' || status === 'review') workspaceStatus = 'ready';
+          else if (status === 'completed' || status === 'done') workspaceStatus = 'completed';
+          else if (status === 'in-review') workspaceStatus = 'in-review';
+          else if (status === 'new') workspaceStatus = 'new';
+          else workspaceStatus = 'todo';
+
+          // Map priority to impact
+          let impact: 'low' | 'medium' | 'high' = 'medium';
+          const priority = task.priority?.toLowerCase();
+          if (priority === 'high' || priority === 'critical') impact = 'high';
+          else if (priority === 'low') impact = 'low';
+          else impact = 'medium';
+
           return {
-            id: task.id,
+            id: task.taskID, // ✅ Use taskID (GUID from database)
             name: task.title,
             assignee: assignee ? {
               name: assignee.name,
-              avatar: assignee.avatar,
+              avatar: assignee.avatar || '',
               initials: assignee.name.split(' ').map(n => n[0]).join('').toUpperCase(),
               color: '#0394ff'
             } : null,
-            dueDate: new Date(task.due_date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }),
-            startDate: task.created_at,
-            endDate: task.due_date,
+            dueDate: task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '',
+            startDate: task.startDate,
+            endDate: task.dueDate,
             status: workspaceStatus,
-            budget: task.estimated_hours * 100, // Mock budget based on estimated hours
-            sprint: `${task.estimated_hours * 100}`,
-            budgetRemaining: Math.max(0, (task.estimated_hours - task.actual_hours) * 100),
+            budget: (task.estimatedHours || 0) * 100,
+            sprint: `$${(task.estimatedHours || 0) * 100}`,
+            budgetRemaining: Math.max(0, ((task.estimatedHours || 0) - (task.actualHours || 0)) * 100),
             comments: 0,
-            phase: 'General',
+            phase: task.phaseID || 'General',
+            impact: impact,
             subtasks: []
           };
         });
+
+        console.log('✅ Converted to workspace tasks:', workspaceTasks.length);
+        if (workspaceTasks.length > 0) {
+          console.log('Sample task ID (GUID):', workspaceTasks[0].id);
+        }
         
         setWorkspaceTasks(workspaceTasks);
       } catch (error) {

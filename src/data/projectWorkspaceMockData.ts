@@ -38,6 +38,12 @@ export interface WorkspaceTask {
   comments: number;
   phase: string;
   subtasks?: WorkspaceTask[];
+  description?: string;
+  actionItems?: Array<{
+    id: string;
+    title: string;
+    completed: boolean;
+  }>;
 }
 
 export const workspaceUsers = [

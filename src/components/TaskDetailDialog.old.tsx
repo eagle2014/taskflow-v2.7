@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Resizable } from 're-resizable';
 import Draggable from 'react-draggable';
 import { Button } from './ui/button';
@@ -32,7 +32,6 @@ import {
   MoreHorizontal,
   ChevronDown,
   CheckCircle2,
-  Circle,
   Menu,
   Search,
   Filter,
@@ -41,7 +40,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { phasesApi, tasksApi, type Phase } from '../services/api';
+import { phasesApi, tasksApi, usersApi, type Phase, type User } from '../services/api';
+import { RichTextEditor } from './RichTextEditor';
 
 interface WorkspaceTask {
   id: string;
@@ -98,6 +98,7 @@ const getDefaultDialogSize = () => {
 export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: TaskDetailDialogProps) {
   const [activeTab, setActiveTab] = useState('details');
   const [status, setStatus] = useState(task?.status || 'todo');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(task?.impact || 'medium');
   const [comment, setComment] = useState('');
   const [showActivity, setShowActivity] = useState(true);
   const [startDate, setStartDate] = useState<Date | undefined>(
@@ -120,6 +121,11 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
   const [phaseID, setPhaseID] = useState<string | undefined>(task?.phaseID);
   const [phases, setPhases] = useState<Phase[]>([]);
   const [loadingPhases, setLoadingPhases] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [assigneeID, setAssigneeID] = useState<string | undefined>(task?.assignee ? 'mock-id' : undefined);
+  const [description, setDescription] = useState(task?.name || ''); // Using task.name as placeholder since description field doesn't exist in WorkspaceTask
+  const [showDescriptionEditor, setShowDescriptionEditor] = useState(false);
 
   // Save dialog size to localStorage whenever it changes
   useEffect(() => {
@@ -203,6 +209,27 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
     setPhaseID(task?.phaseID);
   }, [task?.phaseID]);
 
+  // Fetch users for assignee dropdown
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoadingUsers(true);
+      try {
+        const allUsers = await usersApi.getAll();
+        setUsers(allUsers);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        toast.error('Failed to load users');
+        setUsers([]);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    if (open) {
+      fetchUsers();
+    }
+  }, [open]);
+
   // Close on ESC key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -214,6 +241,32 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
     return () => document.removeEventListener('keydown', handleEscape);
   }, [open, onOpenChange]);
 
+  // Debounce timer for description
+  const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (descriptionTimeoutRef.current) {
+        clearTimeout(descriptionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Update state when task changes
+  useEffect(() => {
+    if (task) {
+      setStatus(task.status || 'todo');
+      setPriority(task.impact || 'medium');
+      setStartDate(task.startDate ? new Date(task.startDate) : undefined);
+      setEndDate(task.endDate ? new Date(task.endDate) : undefined);
+      setPhaseID(task.phaseID);
+      setAssigneeID(task.assignee ? 'mock-id' : undefined);
+      setDescription(task.name || '');
+    }
+  }, [task?.id]); // Only re-run when task ID changes
+
+  // Guard clause - don't render if no task or dialog is closed
   if (!task || !open) return null;
 
   const parseSpentValue = (spentStr: string): number => {
@@ -239,11 +292,66 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
     }
   };
 
-  const handleStatusChange = (newStatus: string) => {
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border-red-500/30';
+      case 'medium':
+        return 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/30';
+      case 'low':
+        return 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/30';
+      default:
+        return 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 border-gray-500/30';
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!task?.id) return;
+
+    const previousStatus = status;
+    // Optimistic update
     setStatus(newStatus as any);
-    toast.success(`Status changed to ${newStatus}`);
-    if (onTaskUpdate) {
-      onTaskUpdate({ ...task, status: newStatus as any });
+
+    try {
+      // Call API to persist the change
+      await tasksApi.update(task.id, {
+        status: newStatus
+      } as any);
+
+      toast.success(`Status changed to ${newStatus}`);
+      if (onTaskUpdate) {
+        onTaskUpdate({ ...task, status: newStatus as any });
+      }
+    } catch (error) {
+      // Revert on error
+      setStatus(previousStatus);
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
+    }
+  };
+
+  const handlePriorityChange = async (newPriority: 'low' | 'medium' | 'high') => {
+    if (!task?.id) return;
+
+    const previousPriority = priority;
+    // Optimistic update
+    setPriority(newPriority);
+
+    try {
+      // Call API to persist the change
+      await tasksApi.update(task.id, {
+        priority: newPriority
+      } as any);
+
+      toast.success(`Priority changed to ${newPriority}`);
+      if (onTaskUpdate) {
+        onTaskUpdate({ ...task, impact: newPriority });
+      }
+    } catch (error) {
+      // Revert on error
+      setPriority(previousPriority);
+      console.error('Error updating priority:', error);
+      toast.error('Failed to update priority');
     }
   };
 
@@ -282,9 +390,143 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
     }
   };
 
+  const handleAssigneeChange = async (newAssigneeID: string) => {
+    if (!task?.id) return;
+
+    const selectedUser = users.find(u => u.userID === newAssigneeID);
+    const previousAssigneeID = assigneeID;
+
+    // Optimistic update
+    setAssigneeID(newAssigneeID === 'none' ? undefined : newAssigneeID);
+
+    try {
+      // Call API to persist the change
+      await tasksApi.update(task.id, {
+        assigneeID: newAssigneeID === 'none' ? null : newAssigneeID
+      } as any);
+
+      // Update parent component's task state
+      if (newAssigneeID === 'none') {
+        toast.success('Assignee cleared');
+        if (onTaskUpdate) {
+          onTaskUpdate({ ...task, assignee: null });
+        }
+      } else if (selectedUser) {
+        toast.success(`Assigned to ${selectedUser.name}`);
+        // Create assignee object from User
+        const assignee = {
+          name: selectedUser.name,
+          avatar: selectedUser.avatar || '',
+          initials: selectedUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+          color: '#0394ff' // Default color
+        };
+        if (onTaskUpdate) {
+          onTaskUpdate({ ...task, assignee });
+        }
+      }
+    } catch (error) {
+      // Revert on error
+      setAssigneeID(previousAssigneeID);
+      console.error('Error updating assignee:', error);
+      toast.error('Failed to update assignee');
+    }
+  };
+
+  const handleStartDateChange = async (newDate: Date | undefined) => {
+    if (!task?.id) return;
+
+    const previousDate = startDate;
+    // Optimistic update
+    setStartDate(newDate);
+
+    try {
+      // Call API to persist the change
+      await tasksApi.update(task.id, {
+        startDate: newDate ? newDate.toISOString() : null
+      } as any);
+
+      toast.success(newDate ? 'Start date updated' : 'Start date cleared');
+      if (onTaskUpdate) {
+        onTaskUpdate({ ...task, startDate: newDate ? newDate.toISOString() : undefined });
+      }
+    } catch (error) {
+      // Revert on error
+      setStartDate(previousDate);
+      console.error('Error updating start date:', error);
+      toast.error('Failed to update start date');
+    }
+  };
+
+  const handleEndDateChange = async (newDate: Date | undefined) => {
+    if (!task?.id) return;
+
+    const previousDate = endDate;
+    // Optimistic update
+    setEndDate(newDate);
+
+    try {
+      // Call API to persist the change
+      await tasksApi.update(task.id, {
+        dueDate: newDate ? newDate.toISOString() : null
+      } as any);
+
+      toast.success(newDate ? 'Due date updated' : 'Due date cleared');
+      if (onTaskUpdate) {
+        const updatedTask = { ...task };
+        if (newDate) {
+          updatedTask.dueDate = newDate.toISOString();
+        } else {
+          delete (updatedTask as any).dueDate;
+        }
+        onTaskUpdate(updatedTask);
+      }
+    } catch (error) {
+      // Revert on error
+      setEndDate(previousDate);
+      console.error('Error updating due date:', error);
+      toast.error('Failed to update due date');
+    }
+  };
+
+  const handleDescriptionChange = (newDescription: string) => {
+    if (!task?.id) return;
+
+    // Update local state immediately
+    setDescription(newDescription);
+
+    // Clear previous timeout
+    if (descriptionTimeoutRef.current) {
+      clearTimeout(descriptionTimeoutRef.current);
+    }
+
+    // Debounce API call - save after 1 second of no typing
+    descriptionTimeoutRef.current = setTimeout(async () => {
+      try {
+        // Validate GUID format
+        const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!guidRegex.test(task.id)) {
+          console.error('Invalid task ID format:', task.id, '- Expected GUID format');
+          toast.error('Cannot save: Invalid task ID format');
+          return;
+        }
+
+        await tasksApi.update(task.id, {
+          description: newDescription
+        } as any);
+        console.log('✅ Description saved successfully');
+        toast.success('Description saved');
+      } catch (error) {
+        console.error('❌ Error updating description:', error);
+        console.error('Task ID:', task.id);
+        console.error('Description length:', newDescription.length);
+        toast.error(`Failed to save description: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }, 1000);
+  };
+
   const handleSendComment = () => {
     if (!comment.trim()) return;
-    
+
     const newComment = {
       id: `comment-${Date.now()}`,
       author: 'You',
@@ -294,7 +536,7 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
       timestamp: new Date(),
       type: 'comment' as const
     };
-    
+
     setComments([newComment, ...comments]);
     setComment('');
   };
@@ -379,8 +621,8 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
                   height: dialogSize.height + d.height,
                 });
               }}
-              minWidth={800}
-              minHeight={500}
+              minWidth={1200}
+              minHeight={600}
               maxWidth={window.innerWidth * 0.95}
               maxHeight={window.innerHeight * 0.95}
               enable={{
@@ -530,7 +772,36 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
                     </div>
 
                     {/* Task Title */}
-                    <h2 className="text-white text-2xl mb-4">{task.name}</h2>
+                    <h2 className="text-white text-2xl mb-3">{task.name}</h2>
+
+                    {/* Status & Priority Badges */}
+                    <div className="flex items-center gap-2 mb-4">
+                      {/* Status Badge Dropdown */}
+                      <Select value={status} onValueChange={handleStatusChange}>
+                        <SelectTrigger className={`w-auto h-7 px-3 text-xs font-medium border ${getStatusColor(status)}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#292d39] border-[#3d4457]">
+                          <SelectItem value="todo" className="text-white text-xs">TODO</SelectItem>
+                          <SelectItem value="in-progress" className="text-white text-xs">IN PROGRESS</SelectItem>
+                          <SelectItem value="ready" className="text-white text-xs">READY</SelectItem>
+                          <SelectItem value="in-review" className="text-white text-xs">IN REVIEW</SelectItem>
+                          <SelectItem value="done" className="text-white text-xs">DONE</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      {/* Priority Badge Dropdown */}
+                      <Select value={priority} onValueChange={handlePriorityChange}>
+                        <SelectTrigger className={`w-auto h-7 px-3 text-xs font-medium border ${getPriorityColor(priority)}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#292d39] border-[#3d4457]">
+                          <SelectItem value="low" className="text-white text-xs">LOW</SelectItem>
+                          <SelectItem value="medium" className="text-white text-xs">MEDIUM</SelectItem>
+                          <SelectItem value="high" className="text-white text-xs">HIGH</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
                     {/* AI Suggestions */}
                     <div className="flex items-center gap-2 text-sm text-[#838a9c] mb-4">
@@ -543,48 +814,39 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
                     <div className="space-y-3">
                       {/* Row 1 */}
                       <div className="grid grid-cols-4 gap-4">
-                        {/* Status */}
-                        <div>
-                          <div className="text-xs text-[#838a9c] mb-2 flex items-center gap-1">
-                            <Circle className="w-3 h-3" />
-                            Status
-                          </div>
-                          <Select value={status} onValueChange={handleStatusChange}>
-                            <SelectTrigger className={`bg-[#292d39] border-[#3d4457] h-8 ${getStatusColor(status)}`}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-[#292d39] border-[#3d4457]">
-                              <SelectItem value="todo" className="text-white">TODO</SelectItem>
-                              <SelectItem value="in-progress" className="text-white">IN PROGRESS</SelectItem>
-                              <SelectItem value="ready" className="text-white">READY</SelectItem>
-                              <SelectItem value="in-review" className="text-white">IN REVIEW</SelectItem>
-                              <SelectItem value="done" className="text-white">DONE</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
                         {/* Assignees */}
                         <div>
                           <div className="text-xs text-[#838a9c] mb-2 flex items-center gap-1">
                             <Users className="w-3 h-3" />
                             Assignees
                           </div>
-                          {task.assignee ? (
-                            <div className="flex items-center gap-2 px-3 py-1 bg-[#292d39] rounded-md h-8">
-                              <div 
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs"
-                                style={{ backgroundColor: task.assignee.color }}
-                              >
-                                {task.assignee.initials}
-                              </div>
-                              <span className="text-white text-sm">{task.assignee.name}</span>
-                            </div>
-                          ) : (
-                            <Button variant="outline" size="sm" className="bg-[#292d39] border-[#3d4457] text-[#838a9c] h-8">
-                              <Plus className="w-3 h-3 mr-1" />
-                              Add
-                            </Button>
-                          )}
+                          <Select
+                            value={assigneeID || 'none'}
+                            onValueChange={handleAssigneeChange}
+                            disabled={loadingUsers}
+                          >
+                            <SelectTrigger className="bg-[#292d39] border-[#3d4457] h-8">
+                              <SelectValue placeholder={loadingUsers ? 'Loading...' : 'Select assignee'} />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#292d39] border-[#3d4457]">
+                              <SelectItem value="none" className="text-[#838a9c]">
+                                Unassigned
+                              </SelectItem>
+                              {users.map((user) => (
+                                <SelectItem key={user.userID} value={user.userID} className="text-white">
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs"
+                                      style={{ backgroundColor: '#0394ff' }}
+                                    >
+                                      {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                    </div>
+                                    <span>{user.name}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         {/* Dates */}
@@ -604,7 +866,7 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
                                 <Calendar
                                   mode="single"
                                   selected={startDate}
-                                  onSelect={setStartDate}
+                                  onSelect={handleStartDateChange}
                                   className="bg-[#292d39]"
                                 />
                               </PopoverContent>
@@ -620,7 +882,7 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
                                 <Calendar
                                   mode="single"
                                   selected={endDate}
-                                  onSelect={setEndDate}
+                                  onSelect={handleEndDateChange}
                                   className="bg-[#292d39]"
                                 />
                               </PopoverContent>
@@ -705,171 +967,216 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
                       </div>
                     </div>
 
-                    {/* Add Description */}
+                    {/* Description Editor */}
                     <div className="mt-4">
-                      <Button variant="outline" size="sm" className="bg-transparent border-[#3d4457] text-[#838a9c] hover:bg-[#292d39]">
-                        <Plus className="w-3 h-3 mr-1" />
-                        Add description
-                      </Button>
-                    </div>
-
-                    {/* Write with AI */}
-                    <div className="mt-2 flex items-center gap-2 text-sm">
-                      <Sparkles className="w-4 h-4 text-[#7c66d9]" />
-                      <span className="text-[#7c66d9]">Write with AI</span>
+                      {showDescriptionEditor ? (
+                        <div>
+                          <RichTextEditor
+                            content={description}
+                            onChange={handleDescriptionChange}
+                            placeholder="Add a description for this task..."
+                            className="mb-2"
+                          />
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Sparkles className="w-4 h-4 text-[#7c66d9]" />
+                              <span className="text-[#7c66d9]">Write with AI</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowDescriptionEditor(false)}
+                              className="text-[#838a9c] hover:text-white"
+                            >
+                              Close
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowDescriptionEditor(true)}
+                            className="bg-transparent border-[#3d4457] text-[#838a9c] hover:bg-[#292d39]"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add description
+                          </Button>
+                          {description && description !== task?.name && (
+                            <div className="mt-2 text-sm text-[#838a9c]">
+                              Click to edit description
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                {/* Body Content */}
+                {/* Body Content - Two Column Grid Layout */}
                 <div className="flex-1 overflow-hidden">
-                  {/* Main Content Area */}
-                  <div className={`h-full overflow-hidden ${showActivity ? 'pr-[352px]' : ''}`}>
-                    {/* Tabs Section */}
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-                      <TabsList className="bg-transparent border-b border-[#3d4457] rounded-none px-6 justify-start h-auto p-0">
-                        <TabsTrigger 
-                          value="details" 
-                          className="bg-transparent border-b-2 border-transparent data-[state=active]:border-[#0394ff] rounded-none px-4 py-3 text-[#838a9c] data-[state=active]:text-white"
-                        >
-                          Details
-                        </TabsTrigger>
-                        <TabsTrigger 
-                          value="subtasks" 
-                          className="bg-transparent border-b-2 border-transparent data-[state=active]:border-[#0394ff] rounded-none px-4 py-3 text-[#838a9c] data-[state=active]:text-white"
-                        >
-                          Subtasks
-                          {task.subtasks && task.subtasks.length > 0 && (
-                            <Badge className="ml-2 bg-[#0394ff] text-white border-none px-1.5 py-0 h-5 text-xs">
-                              {task.subtasks.length}
-                            </Badge>
-                          )}
-                        </TabsTrigger>
-                        <TabsTrigger 
-                          value="action-items" 
-                          className="bg-transparent border-b-2 border-transparent data-[state=active]:border-[#0394ff] rounded-none px-4 py-3 text-[#838a9c] data-[state=active]:text-white"
-                        >
-                          Action Items
-                        </TabsTrigger>
-                      </TabsList>
+                  <div className="grid grid-cols-[1fr,450px] gap-6 h-full">
+                    {/* LEFT COLUMN - Primary Content */}
+                    <div className="overflow-y-auto px-6 py-6 pr-4">
+                      {/* Tabs Section */}
+                      <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+                        <TabsList className="bg-transparent border-b border-[#3d4457] rounded-none justify-start h-auto p-0 mb-6">
+                          <TabsTrigger
+                            value="details"
+                            className="bg-transparent border-b-2 border-transparent data-[state=active]:border-[#0394ff] rounded-none px-4 py-3 text-[#838a9c] data-[state=active]:text-white"
+                          >
+                            Details
+                          </TabsTrigger>
+                          <TabsTrigger
+                            value="subtasks"
+                            className="bg-transparent border-b-2 border-transparent data-[state=active]:border-[#0394ff] rounded-none px-4 py-3 text-[#838a9c] data-[state=active]:text-white"
+                          >
+                            Subtasks
+                            {task.subtasks && task.subtasks.length > 0 && (
+                              <Badge className="ml-2 bg-[#0394ff] text-white border-none px-1.5 py-0 h-5 text-xs">
+                                {task.subtasks.length}
+                              </Badge>
+                            )}
+                          </TabsTrigger>
+                          <TabsTrigger
+                            value="action-items"
+                            className="bg-transparent border-b-2 border-transparent data-[state=active]:border-[#0394ff] rounded-none px-4 py-3 text-[#838a9c] data-[state=active]:text-white"
+                          >
+                            Action Items
+                          </TabsTrigger>
+                        </TabsList>
 
-                      <div className="flex-1 overflow-y-auto px-6 py-6">
-                        {/* Details Tab */}
-                        <TabsContent value="details" className="mt-0">
-                          <div className="space-y-4">
-                            <h3 className="text-white font-medium">Custom Fields</h3>
-                            
-                            <div className="space-y-3">
-                              {/* Budget */}
-                              <div className="flex items-center justify-between py-2 border-b border-[#3d4457]">
-                                <div className="flex items-center gap-2 text-[#838a9c]">
-                                  <span className="text-sm">$</span>
-                                  <span className="text-sm">Budget</span>
-                                </div>
-                                <div className="text-white font-medium">${task.budget.toLocaleString()}</div>
-                              </div>
+                        <div className="flex-1">
+                          {/* Details Tab */}
+                          <TabsContent value="details" className="mt-0">
+                            <div className="space-y-4">
+                              <h3 className="text-white font-medium">Custom Fields</h3>
 
-                              {/* Budget Remaining */}
-                              <div className="flex items-center justify-between py-2 border-b border-[#3d4457]">
-                                <div className="flex items-center gap-2 text-[#838a9c]">
-                                  <span className="text-sm">$</span>
-                                  <span className="text-sm">budget remaining</span>
+                              <div className="space-y-3">
+                                {/* Budget */}
+                                <div className="flex items-center justify-between py-2 border-b border-[#3d4457]">
+                                  <div className="flex items-center gap-2 text-[#838a9c]">
+                                    <span className="text-sm">$</span>
+                                    <span className="text-sm">Budget</span>
+                                  </div>
+                                  <div className="text-white font-medium">${task.budget.toLocaleString()}</div>
                                 </div>
-                                <div className="text-white font-medium">${task.budgetRemaining.toLocaleString()}</div>
-                              </div>
 
-                              {/* Review */}
-                              <div className="flex items-center justify-between py-2 border-b border-[#3d4457]">
-                                <div className="flex items-center gap-2 text-[#838a9c]">
-                                  <CheckCircle2 className="w-4 h-4" />
-                                  <span className="text-sm">Review</span>
+                                {/* Budget Remaining */}
+                                <div className="flex items-center justify-between py-2 border-b border-[#3d4457]">
+                                  <div className="flex items-center gap-2 text-[#838a9c]">
+                                    <span className="text-sm">$</span>
+                                    <span className="text-sm">budget remaining</span>
+                                  </div>
+                                  <div className="text-white font-medium">${task.budgetRemaining.toLocaleString()}</div>
                                 </div>
-                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                                  Done
-                                </Badge>
-                              </div>
 
-                              {/* Revision */}
-                              <div className="flex items-center justify-between py-2 border-b border-[#3d4457]">
-                                <div className="flex items-center gap-2 text-[#838a9c]">
-                                  <CheckCircle2 className="w-4 h-4" />
-                                  <span className="text-sm">Revision</span>
+                                {/* Review */}
+                                <div className="flex items-center justify-between py-2 border-b border-[#3d4457]">
+                                  <div className="flex items-center gap-2 text-[#838a9c]">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span className="text-sm">Review</span>
+                                  </div>
+                                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                    Done
+                                  </Badge>
                                 </div>
-                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                                  Done
-                                </Badge>
-                              </div>
 
-                              {/* Spent */}
-                              <div className="flex items-center justify-between py-2 border-b border-[#3d4457]">
-                                <div className="flex items-center gap-2 text-[#838a9c]">
-                                  <span className="text-sm">$</span>
-                                  <span className="text-sm">Spent</span>
+                                {/* Revision */}
+                                <div className="flex items-center justify-between py-2 border-b border-[#3d4457]">
+                                  <div className="flex items-center gap-2 text-[#838a9c]">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span className="text-sm">Revision</span>
+                                  </div>
+                                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                    Done
+                                  </Badge>
                                 </div>
-                                <div className="text-white font-medium">${spent.toLocaleString()}</div>
+
+                                {/* Spent */}
+                                <div className="flex items-center justify-between py-2 border-b border-[#3d4457]">
+                                  <div className="flex items-center gap-2 text-[#838a9c]">
+                                    <span className="text-sm">$</span>
+                                    <span className="text-sm">Spent</span>
+                                  </div>
+                                  <div className="text-white font-medium">${spent.toLocaleString()}</div>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </TabsContent>
+                          </TabsContent>
 
-                        {/* Subtasks Tab */}
-                        <TabsContent value="subtasks" className="mt-0">
-                          <div className="text-[#838a9c] text-center py-8">
-                            {task.subtasks && task.subtasks.length > 0 ? (
-                              <div className="space-y-2">
-                                {task.subtasks.map((subtask) => (
-                                  <div key={subtask.id} className="flex items-center gap-2 p-2 bg-[#292d39] rounded">
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    <span className="text-white">{subtask.name}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              'No subtasks yet'
-                            )}
-                          </div>
-                        </TabsContent>
+                          {/* Subtasks Tab */}
+                          <TabsContent value="subtasks" className="mt-0">
+                            <div className="text-[#838a9c] text-center py-8">
+                              {task.subtasks && task.subtasks.length > 0 ? (
+                                <div className="space-y-2">
+                                  {task.subtasks.map((subtask) => (
+                                    <div key={subtask.id} className="flex items-center gap-2 p-2 bg-[#292d39] rounded">
+                                      <CheckCircle2 className="w-4 h-4" />
+                                      <span className="text-white">{subtask.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                'No subtasks yet'
+                              )}
+                            </div>
+                          </TabsContent>
 
-                        {/* Action Items Tab */}
-                        <TabsContent value="action-items" className="mt-0">
-                          <div className="text-[#838a9c] text-center py-8">
-                            No action items yet
-                          </div>
-                        </TabsContent>
-                      </div>
-                    </Tabs>
-                  </div>
-                </div>
-
-                {/* ActivityBox - Floating on right (positioned below header area) */}
-                {showActivity && (
-                    <div className="absolute top-[100px] right-4 bottom-4 w-80 bg-[#181c28] border border-[#3d4457] rounded-lg shadow-xl flex flex-col z-10">
-                      <div className="px-4 py-3 border-b border-[#3d4457] flex items-center justify-between">
-                        <h3 className="text-white font-medium">Activity</h3>
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-[#838a9c] hover:text-white">
-                            <Search className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-7 px-2 text-[#838a9c] hover:text-white flex items-center gap-1">
-                            <MessageSquare className="w-4 h-4" />
-                            <span className="text-xs">{comments.length}</span>
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-[#838a9c] hover:text-white">
-                            <Filter className="w-4 h-4" />
-                          </Button>
+                          {/* Action Items Tab */}
+                          <TabsContent value="action-items" className="mt-0">
+                            <div className="text-[#838a9c] text-center py-8">
+                              No action items yet
+                            </div>
+                          </TabsContent>
                         </div>
-                      </div>
+                      </Tabs>
 
-                      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {comments.length === 0 ? (
-                          <div className="text-center py-8 text-[#838a9c] text-sm">
-                            No activity yet. Be the first to comment!
+                      {/* Comments Section - Bottom of Left Column */}
+                      <div className="mt-8 border-t border-[#3d4457] pt-6">
+                        <h3 className="text-white font-medium mb-4">Comments ({comments.length})</h3>
+
+                        {/* Comment Input */}
+                        <div className="mb-6">
+                          <Textarea
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            onKeyDown={handleCommentKeyDown}
+                            placeholder="Write a comment... (Press Enter to send, Shift+Enter for new line)"
+                            className="bg-[#292d39] border-[#3d4457] text-white placeholder:text-[#838a9c] resize-none mb-2"
+                            rows={3}
+                          />
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-[#838a9c]">
+                                <Smile className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-[#838a9c]">
+                                <Paperclip className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="bg-[#0394ff] hover:bg-[#0570cd] text-white"
+                              onClick={handleSendComment}
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Send
+                            </Button>
                           </div>
-                        ) : (
-                          <div className="space-y-4">
-                            {comments.map((item) => (
+                        </div>
+
+                        {/* Comments List */}
+                        <div className="space-y-4">
+                          {comments.length === 0 ? (
+                            <div className="text-center py-8 text-[#838a9c] text-sm">
+                              No comments yet. Be the first to comment!
+                            </div>
+                          ) : (
+                            comments.map((item) => (
                               <div key={item.id} className="flex gap-3">
                                 <Avatar className="h-8 w-8 flex-shrink-0">
-                                  <AvatarFallback 
+                                  <AvatarFallback
                                     className="text-xs"
                                     style={{ backgroundColor: item.authorColor }}
                                   >
@@ -892,72 +1199,69 @@ export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdate }: Tas
                                   )}
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Comment Input */}
-                      <div className="border-t border-[#3d4457] p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Button variant="ghost" size="sm" className="h-auto p-0 text-[#838a9c] hover:text-white">
-                            Comment
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-auto p-0 text-[#838a9c] hover:text-white">
-                            Email
-                          </Button>
-                        </div>
-                        <div className="relative">
-                          <Textarea
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
-                            onKeyDown={handleCommentKeyDown}
-                            placeholder="Write a comment... (Press Enter to send, Shift+Enter for new line)"
-                            className="bg-[#292d39] border-[#3d4457] text-white placeholder:text-[#838a9c] pr-24 resize-none"
-                            rows={3}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between mt-2">
-                          <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#838a9c]">
-                              <Plus className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#838a9c]">
-                              <Smile className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#838a9c]">
-                              <AtSign className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#838a9c]">
-                              <Hash className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#838a9c]">
-                              <FileText className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#838a9c]">
-                              <ImageIcon className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#838a9c]">
-                              <Video className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#838a9c]">
-                              <Mic className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#838a9c]">
-                              <Code className="w-4 h-4" />
-                            </Button>
-                          </div>
-                          <Button 
-                            size="icon" 
-                            className="h-8 w-8 bg-[#0394ff] hover:bg-[#0570cd] text-white"
-                            onClick={handleSendComment}
-                          >
-                            <Send className="w-4 h-4" />
-                          </Button>
+                            ))
+                          )}
                         </div>
                       </div>
                     </div>
-                )}
+
+                    {/* RIGHT COLUMN - Widgets Sidebar */}
+                    <div className="border-l border-[#3d4457] overflow-y-auto px-6 py-6 space-y-6">
+                      {/* Assignee Widget */}
+                      <div>
+                        <h3 className="text-white font-medium mb-3 text-sm">Assignee</h3>
+                        <Select
+                          value={assigneeID || 'none'}
+                          onValueChange={handleAssigneeChange}
+                          disabled={loadingUsers}
+                        >
+                          <SelectTrigger className="bg-[#292d39] border-[#3d4457] h-10 w-full">
+                            <SelectValue placeholder={loadingUsers ? 'Loading...' : 'Select assignee'} />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#292d39] border-[#3d4457]">
+                            <SelectItem value="none" className="text-[#838a9c]">
+                              <div className="flex items-center gap-2">
+                                <Plus className="w-4 h-4" />
+                                <span>Unassigned</span>
+                              </div>
+                            </SelectItem>
+                            {users.map((user) => (
+                              <SelectItem key={user.userID} value={user.userID} className="text-white">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs"
+                                    style={{ backgroundColor: '#0394ff' }}
+                                  >
+                                    {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-white">{user.name}</p>
+                                    <p className="text-xs text-[#838a9c]">{user.email}</p>
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Activity Widget Placeholder */}
+                      {showActivity && (
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-white font-medium text-sm">Activity</h3>
+                            <Badge className="bg-[#0394ff] text-white border-none px-2 py-0.5 text-xs">
+                              {comments.length}
+                            </Badge>
+                          </div>
+                          <div className="text-[#838a9c] text-sm">
+                            Recent activity will appear here
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </Resizable>
           </div>

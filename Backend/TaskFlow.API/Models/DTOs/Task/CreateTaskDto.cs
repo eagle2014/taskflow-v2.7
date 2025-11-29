@@ -30,5 +30,6 @@ namespace TaskFlow.API.Models.DTOs.Task
         public decimal? Budget { get; set; }
         public decimal? Spent { get; set; }
         public string? Tags { get; set; }
+        public string? SectionName { get; set; }
     }
 }

@@ -56,16 +56,35 @@ A powerful, multi-tenant task management platform built with React, .NET 8.0, an
 
 4. **Or start services individually**
 
-   **Backend:**
+   **Option A: Start all services at once (Recommended)**
    ```bash
-   cd Backend/TaskFlow.API
-   dotnet restore
-   dotnet run
+   npm start
    ```
+   This will:
+   - Kill any processes on ports 5600 and 5001
+   - Start Backend API on port 5001 (new window)
+   - Start Frontend on port 5600 (new window)
 
-   **Frontend:**
+   **Option B: Start services separately**
+
+   Frontend (auto-kills port 5600):
    ```bash
    npm run dev
+   ```
+
+   Backend (auto-kills port 5001):
+   ```bash
+   npm run backend
+   ```
+
+   Or manually:
+   ```bash
+   # Backend
+   cd Backend/TaskFlow.API
+   dotnet run
+
+   # Frontend (in new terminal)
+   npm run dev:raw
    ```
 
 ### Default Login Credentials

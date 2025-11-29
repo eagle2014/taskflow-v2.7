@@ -1,0 +1,136 @@
+TaskDetailDialog Phase 1 - Component Tree
+==========================================
+
+TaskDetailDialog/
+│
+├── index.ts ................................................ Barrel export
+├── types.ts ................................................ TypeScript interfaces
+│
+├── TaskDetailDialog.tsx .................................... Main container (85 lines)
+│   │
+│   ├─> <Dialog> max-w-6xl h-[90vh]
+│   │   │
+│   │   ├─> <TaskHeader>
+│   │   │   ├─> Breadcrumb (Space › Project › Phase)
+│   │   │   ├─> Badge (Task ID)
+│   │   │   ├─> <h1> contentEditable (Task Title)
+│   │   │   ├─> <Button> "Ask AI" (Sparkles icon)
+│   │   │   └─> <Button> Close (X icon)
+│   │   │
+│   │   ├─> <div> flex (Left/Right Split)
+│   │   │   │
+│   │   │   ├─> Left Content (flex-1, overflow-y-auto)
+│   │   │   │   ├─> <TaskMetadata>
+│   │   │   │   │   └─> grid grid-cols-2 gap-x-12 gap-y-6
+│   │   │   │   │       ├─> <MetadataField> icon={Circle} label="Status"
+│   │   │   │   │       │   └─> <StatusPill> (dropdown)
+│   │   │   │   │       ├─> <MetadataField> icon={Users} label="Assignees"
+│   │   │   │   │       │   └─> <AssigneeList> (avatars)
+│   │   │   │   │       ├─> <MetadataField> icon={Calendar} label="Dates"
+│   │   │   │   │       │   └─> <DateRange> (formatted)
+│   │   │   │   │       ├─> <MetadataField> icon={Zap} label="Time Estimate"
+│   │   │   │   │       ├─> <MetadataField> icon={Clock} label="Track Time"
+│   │   │   │   │       └─> <MetadataField> icon={Link2} label="Relationships"
+│   │   │   │   └─> [Placeholder for Phase 2+]
+│   │   │   │
+│   │   │   └─> Right Sidebar (w-80, bg-gray-50)
+│   │   │       └─> Activity [Placeholder for Phase 4]
+│
+├── components/
+│   ├── TaskHeader.tsx ...................................... (83 lines)
+│   └── TaskMetadata.tsx .................................... (82 lines)
+│
+└── fields/
+    ├── MetadataField.tsx ................................... (13 lines)
+    ├── StatusPill.tsx ...................................... (47 lines)
+    ├── AssigneeList.tsx .................................... (44 lines)
+    └── DateRange.tsx ....................................... (35 lines)
+
+
+Field Components Detail
+=======================
+
+MetadataField (Reusable Wrapper)
+├─> icon: ReactNode (lucide-react icons)
+├─> label: string (text-sm font-medium text-gray-700)
+└─> value: ReactNode (any component)
+
+StatusPill (Dropdown Selector)
+├─> Current status pill (bg-green-100 for complete)
+├─> ChevronDown icon
+└─> DropdownMenu
+    ├─> Complete (green)
+    ├─> In Progress (blue)
+    ├─> In Review (purple)
+    ├─> Ready (yellow)
+    └─> To Do (gray)
+
+AssigneeList (Avatar Bubbles)
+├─> Avatar[] (overlapping with -ml-1)
+├─> AvatarFallback (initials, colored bg)
+├─> Plus button (dashed border)
+└─> "Empty" state (text-gray-400)
+
+DateRange (Formatted Display)
+├─> CalendarIcon (prefix)
+├─> Formatted date range "2/5/20 → 2/5/20"
+└─> "Empty" state when no dates
+
+
+Design Tokens Used
+==================
+
+Colors:
+  Status Complete: bg-green-100 text-green-800
+  Status In-Progress: bg-blue-100 text-blue-800
+  Status To-Do: bg-gray-100 text-gray-800
+  Background Main: bg-white
+  Background Sidebar: bg-gray-50
+  Border: border-gray-200
+  Text Primary: text-gray-900
+  Text Secondary: text-gray-700
+  Text Tertiary: text-gray-600
+  Text Empty: text-gray-400
+
+Spacing:
+  gap-2: 8px
+  gap-3: 12px
+  gap-4: 16px
+  gap-6: 24px
+  gap-x-12: 48px (metadata grid)
+  px-6: 24px
+  py-4: 16px
+  py-6: 24px
+
+Typography:
+  Title: text-2xl font-semibold
+  Label: text-sm font-medium text-gray-700
+  Value: text-sm text-gray-600
+  Badge: text-xs font-mono
+
+Layout:
+  Dialog: max-w-6xl (1152px)
+  Height: h-[90vh]
+  Sidebar: w-80 (320px)
+  Left: flex-1
+
+
+State Management
+================
+
+Props Flow:
+  TaskDetailDialog
+    ├─> task: WorkspaceTask (read)
+    ├─> onTaskUpdate: (task) => void (write)
+    └─> onOpenChange: (open) => void (control)
+
+Event Handlers:
+  handleTitleChange(newTitle)
+    └─> onTaskUpdate({ ...task, name: newTitle })
+  
+  handleFieldUpdate(field, value)
+    └─> onTaskUpdate({ ...task, [field]: value })
+
+Toast Notifications:
+  Title change → "Task title updated"
+  Field update → "{field} updated"
