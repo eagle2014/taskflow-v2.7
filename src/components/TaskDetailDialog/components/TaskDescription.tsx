@@ -11,8 +11,28 @@ import {
   Link as LinkIcon,
   Sparkles
 } from 'lucide-react';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import '../editor.css';
+
+// Create extensions ONCE outside component to prevent duplicate warning
+// Note: We disable link in StarterKit and add our own Link extension with custom config
+const createExtensions = () => [
+  StarterKit.configure({
+    // StarterKit doesn't include Link by default, but let's be explicit
+  }),
+  Placeholder.configure({
+    placeholder: 'Add a description...',
+  }),
+  Link.configure({
+    openOnClick: false,
+    HTMLAttributes: {
+      class: 'text-blue-600 underline hover:text-blue-800',
+    },
+  }).extend({
+    // Ensure unique extension name to prevent duplicates
+    name: 'customLink',
+  }),
+];
 
 interface TaskDescriptionProps {
   description?: string;
@@ -25,19 +45,11 @@ export function TaskDescription({
   onChange,
   onAIAssist
 }: TaskDescriptionProps) {
+  // Use ref to ensure extensions are created only once per component instance
+  const extensionsRef = useRef(createExtensions());
+
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({
-        placeholder: 'Add a description...',
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-blue-600 underline hover:text-blue-800',
-        },
-      }),
-    ],
+    extensions: extensionsRef.current,
     content: description,
     editorProps: {
       attributes: {
@@ -47,7 +59,16 @@ export function TaskDescription({
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    // Prevent hydration issues and duplicate extension warning
+    immediatelyRender: false,
   });
+
+  // Cleanup editor on unmount
+  useEffect(() => {
+    return () => {
+      editor?.destroy();
+    };
+  }, [editor]);
 
   // Update editor content when description prop changes
   useEffect(() => {
@@ -88,15 +109,15 @@ export function TaskDescription({
   if (!editor) return null;
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+    <div className="border border-[#3d4457] rounded-lg overflow-hidden bg-[#292d39]">
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[#3d4457] bg-[#1f2330]">
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="sm"
             onClick={toggleBold}
-            className={editor.isActive('bold') ? 'bg-gray-200' : ''}
+            className={`h-8 w-8 p-0 text-[#838a9c] hover:text-white hover:bg-[#3d4457] ${editor.isActive('bold') ? 'bg-[#3d4457] text-white' : ''}`}
             aria-label="Bold"
           >
             <Bold className="w-4 h-4" />
@@ -105,17 +126,17 @@ export function TaskDescription({
             variant="ghost"
             size="sm"
             onClick={toggleItalic}
-            className={editor.isActive('italic') ? 'bg-gray-200' : ''}
+            className={`h-8 w-8 p-0 text-[#838a9c] hover:text-white hover:bg-[#3d4457] ${editor.isActive('italic') ? 'bg-[#3d4457] text-white' : ''}`}
             aria-label="Italic"
           >
             <Italic className="w-4 h-4" />
           </Button>
-          <div className="w-px h-6 bg-gray-300 mx-1" />
+          <div className="w-px h-6 bg-[#3d4457] mx-1" />
           <Button
             variant="ghost"
             size="sm"
             onClick={toggleBulletList}
-            className={editor.isActive('bulletList') ? 'bg-gray-200' : ''}
+            className={`h-8 w-8 p-0 text-[#838a9c] hover:text-white hover:bg-[#3d4457] ${editor.isActive('bulletList') ? 'bg-[#3d4457] text-white' : ''}`}
             aria-label="Bullet list"
           >
             <List className="w-4 h-4" />
@@ -124,17 +145,17 @@ export function TaskDescription({
             variant="ghost"
             size="sm"
             onClick={toggleOrderedList}
-            className={editor.isActive('orderedList') ? 'bg-gray-200' : ''}
+            className={`h-8 w-8 p-0 text-[#838a9c] hover:text-white hover:bg-[#3d4457] ${editor.isActive('orderedList') ? 'bg-[#3d4457] text-white' : ''}`}
             aria-label="Numbered list"
           >
             <ListOrdered className="w-4 h-4" />
           </Button>
-          <div className="w-px h-6 bg-gray-300 mx-1" />
+          <div className="w-px h-6 bg-[#3d4457] mx-1" />
           <Button
             variant="ghost"
             size="sm"
             onClick={setLink}
-            className={editor.isActive('link') ? 'bg-gray-200' : ''}
+            className={`h-8 w-8 p-0 text-[#838a9c] hover:text-white hover:bg-[#3d4457] ${editor.isActive('link') ? 'bg-[#3d4457] text-white' : ''}`}
             aria-label="Insert link"
           >
             <LinkIcon className="w-4 h-4" />
@@ -146,7 +167,7 @@ export function TaskDescription({
             variant="outline"
             size="sm"
             onClick={onAIAssist}
-            className="gap-2"
+            className="gap-2 border-[#3d4457] bg-transparent text-[#838a9c] hover:bg-[#3d4457] hover:text-white"
             aria-label="Write with AI"
           >
             <Sparkles className="w-4 h-4" />
@@ -156,7 +177,7 @@ export function TaskDescription({
       </div>
 
       {/* Editor */}
-      <EditorContent editor={editor} />
+      <EditorContent editor={editor} className="text-white [&_.ProseMirror]:text-[#c5c9d6] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#838a9c]" />
     </div>
   );
 }

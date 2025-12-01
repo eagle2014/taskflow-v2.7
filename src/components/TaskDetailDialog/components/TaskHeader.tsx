@@ -3,7 +3,7 @@ import { Badge } from '../../ui/badge';
 import { ChevronRight, X } from 'lucide-react';
 import { useRef, useCallback } from 'react';
 
-export function TaskHeader({ task, onTitleChange, onClose }: TaskHeaderProps) {
+export function TaskHeader({ task, onTitleChange, onClose, onDragStart }: TaskHeaderProps) {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const originalTitleRef = useRef(task.name);
 
@@ -55,11 +55,14 @@ export function TaskHeader({ task, onTitleChange, onClose }: TaskHeaderProps) {
   const phaseName = task.phase || 'Phase 1';
 
   return (
-    <header className="border-b border-[#3d4457] px-6 py-4 bg-[#1f2330]">
-      {/* Breadcrumb */}
+    <header
+      className="border-b border-[#3d4457] px-6 py-4 bg-[#1f2330]"
+    >
+      {/* Breadcrumb - also serves as drag handle */}
       <nav
-        className="flex items-center gap-2 text-sm text-[#838a9c] mb-3"
+        className="flex items-center gap-2 text-sm text-[#838a9c] mb-3 cursor-move select-none"
         aria-label="Task breadcrumb navigation"
+        onMouseDown={onDragStart}
       >
         <button
           className="text-[#8b5cf6] hover:text-[#7c66d9] cursor-pointer transition-colors"

@@ -1,49 +1,18 @@
 // TaskDetailDialog Types
+// Import and re-export types from the main types file
+import { type WorkspaceTask, type Subtask, type ActionItem } from '@/types/workspace';
+export { type WorkspaceTask, type Subtask, type ActionItem };
 
 // Tab Type
 export type TaskTab = 'details' | 'subtasks' | 'action-items';
 
-// Subtask Type
-export interface Subtask {
-  id: string;
+// Assignee Type
+export interface Assignee {
+  id?: string;  // Unique identifier for key prop
   name: string;
-  completed: boolean;
-  status: 'todo' | 'in-progress' | 'done';
-}
-
-// Action Item Type
-export interface ActionItem {
-  id: string;
-  name: string;
-  completed: boolean;
-}
-
-export interface WorkspaceTask {
-  id: string;
-  name: string;
-  description?: string;
-  assignee: {
-    name: string;
-    avatar: string;
-    initials: string;
-    color: string;
-  } | null;
-  dueDate: string;
-  startDate?: string;
-  endDate?: string;
-  status: 'todo' | 'in-progress' | 'ready' | 'done' | 'in-review' | 'completed' | 'new';
-  budget: number;
-  sprint: string;
-  budgetRemaining: number;
-  comments?: number;
-  subtasks?: Subtask[];
-  actionItems?: ActionItem[];
-  parentId?: string;
-  phase?: string;
-  phaseID?: string;
-  projectID?: string;
-  impact?: 'low' | 'medium' | 'high';
-  files?: number;
+  avatar: string;
+  initials: string;
+  color: string;
 }
 
 export interface TaskComment {
@@ -60,6 +29,7 @@ export interface TaskHeaderProps {
   task: WorkspaceTask;
   onTitleChange: (title: string) => void;
   onClose: () => void;
+  onDragStart?: (e: React.MouseEvent) => void;
 }
 
 // Discriminated union for type-safe field updates
@@ -69,7 +39,7 @@ export type TaskFieldUpdate =
   | { field: 'startDate' | 'endDate' | 'dueDate'; value: string | undefined }
   | { field: 'name'; value: string }
   | { field: 'description'; value: string }
-  | { field: 'budget' | 'budgetRemaining'; value: number };
+  | { field: 'budget' | 'spent' | 'budgetRemaining' | 'estimatedHours' | 'actualHours' | 'progress'; value: number };
 
 export interface TaskMetadataProps {
   task: WorkspaceTask;
@@ -112,8 +82,9 @@ export interface Activity {
     color: string;
   };
   timestamp: Date;
-  content: string;
+  content?: string;
   metadata?: Record<string, unknown>;
+  parentCommentId?: string;
 }
 
 export interface Comment {

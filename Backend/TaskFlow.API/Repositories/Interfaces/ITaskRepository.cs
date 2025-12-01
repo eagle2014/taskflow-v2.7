@@ -45,5 +45,13 @@ namespace TaskFlow.API.Repositories.Interfaces
         /// <param name="days">Number of days</param>
         /// <returns>Collection of tasks due soon</returns>
         Task<IEnumerable<Models.Entities.Task>> GetDueSoonAsync(string siteId, int days);
+
+        /// <summary>
+        /// Get subtasks by parent task ID for a specific site
+        /// </summary>
+        /// <param name="siteId">Site ID</param>
+        /// <param name="parentTaskId">Parent task ID</param>
+        /// <returns>Collection of subtasks</returns>
+        Task<IEnumerable<Models.Entities.Task>> GetByParentTaskAsync(string siteId, Guid parentTaskId);
     }
 }

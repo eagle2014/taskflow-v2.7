@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -15,6 +16,20 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 
+// Create extensions ONCE outside component to prevent duplicate warning
+const createExtensions = (placeholder: string) => [
+  StarterKit.configure({}),
+  Placeholder.configure({
+    placeholder
+  }),
+  Link.configure({
+    openOnClick: false,
+    HTMLAttributes: {
+      class: 'text-[#0394ff] underline cursor-pointer'
+    }
+  })
+];
+
 interface RichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
@@ -30,19 +45,11 @@ export function RichTextEditor({
   className = '',
   editable = true
 }: RichTextEditorProps) {
+  // Use ref to ensure extensions are created only once per component instance
+  const extensionsRef = useRef(createExtensions(placeholder));
+
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({
-        placeholder
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-[#0394ff] underline cursor-pointer'
-        }
-      })
-    ],
+    extensions: extensionsRef.current,
     content,
     editable,
     onUpdate: ({ editor }) => {
@@ -52,8 +59,17 @@ export function RichTextEditor({
       attributes: {
         class: 'prose prose-invert max-w-none focus:outline-none min-h-[120px] px-3 py-2'
       }
-    }
+    },
+    // Prevent hydration issues and duplicate extension warning
+    immediatelyRender: false,
   });
+
+  // Cleanup editor on unmount
+  useEffect(() => {
+    return () => {
+      editor?.destroy();
+    };
+  }, [editor]);
 
   if (!editor) {
     return null;

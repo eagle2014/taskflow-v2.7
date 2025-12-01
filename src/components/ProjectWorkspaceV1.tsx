@@ -15,6 +15,7 @@ import { KanbanBoard } from './KanbanBoard';
 import { TaskDetailDialog } from './TaskDetailDialog';
 import { NewProjectForm } from './NewProjectForm';
 import { NewTaskDialog } from './NewTaskDialog';
+import { AddPhaseDialog } from './AddPhaseDialog';
 import {
   List,
   LayoutGrid,
@@ -34,10 +35,9 @@ import {
   type Space,
   type Phase,
   type WorkspaceTask,
-  createDefaultPhases,
-  createSampleTasks
-} from '../data/projectWorkspaceMockData';
-import { projectsApi, spacesApi, type Project, tasksApi, type Task, type User, type Space as ApiSpace } from '../services/api';
+  createDefaultPhases
+} from '../types/workspace';
+import { projectsApi, spacesApi, phasesApi, type Project, tasksApi, type Task, type User, type Space as ApiSpace, type Phase as ApiPhase } from '../services/api';
 
 // Props interface
 interface ProjectWorkspaceProps {
@@ -172,6 +172,7 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
   const [showCreateSpaceDialog, setShowCreateSpaceDialog] = useState(false);
   const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false);
   const [showCreatePhaseDialog, setShowCreatePhaseDialog] = useState(false);
+  const [selectedProjectForPhase, setSelectedProjectForPhase] = useState<string | null>(null);
   const [selectedSpaceForProject, setSelectedSpaceForProject] = useState<string | null>(null);
   const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<WorkspaceTask | null>(null);
   const [taskDetailOpen, setTaskDetailOpen] = useState(false);
@@ -310,14 +311,19 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
         const workspaceTasksList: WorkspaceTask[] = tasks.map((task: Task) => ({
           id: task.taskID,
           name: task.title,
+          description: task.description || '',
           assignee: null,
           dueDate: task.dueDate ? formatDateDisplay(new Date(task.dueDate)) : '',
           startDate: task.startDate,
           endDate: task.dueDate,
           status: mapApiStatusToLocal(task.status),
-          budget: 0,
+          budget: task.budget || 0,
+          spent: task.spent || 0,
           sprint: '-',
-          budgetRemaining: 0,
+          budgetRemaining: (task.budget || 0) - (task.spent || 0),
+          estimatedHours: task.estimatedHours || 0,
+          actualHours: task.actualHours || 0,
+          progress: task.progress || 0,
           comments: 0,
           phase: 'No Phase'
         }));
@@ -326,23 +332,21 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
         setWorkspaceTasks(workspaceTasksList);
         console.log(`✅ Loaded ${workspaceTasksList.length} tasks from API for project ${projectId}`);
       } else {
-        // Create sample tasks if none exist
-        const sampleTasks = createSampleTasks(projectId);
-        setProjectTasks(prev => ({ ...prev, [projectId]: sampleTasks }));
-        setWorkspaceTasks(sampleTasks);
+        // No tasks exist - start with empty list
+        setProjectTasks(prev => ({ ...prev, [projectId]: [] }));
+        setWorkspaceTasks([]);
 
-        // Also create default phases
+        // Create default phases
         const defaultPhases = createDefaultPhases();
         setProjectPhases(prev => ({ ...prev, [projectId]: defaultPhases }));
 
-        console.log(`✅ Created ${sampleTasks.length} sample tasks for project ${projectId}`);
+        console.log(`✅ No tasks found for project ${projectId}, starting with empty list`);
       }
     } catch (error) {
       console.error('Failed to load tasks:', error);
-      // Create sample tasks on error
-      const sampleTasks = createSampleTasks(projectId);
-      setProjectTasks(prev => ({ ...prev, [projectId]: sampleTasks }));
-      setWorkspaceTasks(sampleTasks);
+      // Start with empty list on error
+      setProjectTasks(prev => ({ ...prev, [projectId]: [] }));
+      setWorkspaceTasks([]);
 
       const defaultPhases = createDefaultPhases();
       setProjectPhases(prev => ({ ...prev, [projectId]: defaultPhases }));
@@ -582,8 +586,39 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
 
   // Handle task click (open detail)
   const handleTaskClick = (task: WorkspaceTask) => {
+    console.log('🔵 handleTaskClick called:', task.name, task);
     setSelectedTaskForDetail(task);
     setTaskDetailOpen(true);
+  };
+
+  // Handle task update from TaskDetailDialog
+  const handleTaskDetailUpdate = async (updatedTask: WorkspaceTask) => {
+    try {
+      // Update backend API
+      await tasksApi.update(updatedTask.id, {
+        title: updatedTask.name,
+        description: updatedTask.description,
+        status: updatedTask.status,
+        budget: updatedTask.budget,
+        spent: updatedTask.spent,
+        estimatedHours: updatedTask.estimatedHours,
+        actualHours: updatedTask.actualHours,
+        progress: updatedTask.progress,
+      });
+
+      // Update local state
+      setSelectedTaskForDetail(updatedTask);
+      setWorkspaceTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+      if (activeProject) {
+        setProjectTasks(prev => ({
+          ...prev,
+          [activeProject]: prev[activeProject]?.map(t => t.id === updatedTask.id ? updatedTask : t) || []
+        }));
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast.error('Failed to update task');
+    }
   };
 
   // Handle create project
@@ -625,6 +660,7 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
       dueDate: '',
       status: 'todo',
       budget: 0,
+      spent: 0,
       sprint: '-',
       budgetRemaining: 0,
       comments: 0,
@@ -839,8 +875,13 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
             />
           ) : (
             <span
-              className="text-white hover:text-[#0394ff] transition-colors"
-              onDoubleClick={() => {
+              className="text-white hover:text-[#0394ff] transition-colors cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTaskClick(task);
+              }}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
                 setEditingTaskId(task.id);
                 setEditingTaskName(task.name);
               }}
@@ -1173,7 +1214,8 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
               setSelectedSpaceForProject(spaceId);
               setShowCreateProjectDialog(true);
             }}
-            onCreatePhase={(spaceId) => {
+            onCreatePhase={(projectId) => {
+              setSelectedProjectForPhase(projectId);
               setShowCreatePhaseDialog(true);
             }}
             onEditSpace={handleEditSpace}
@@ -1266,6 +1308,7 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
           task={selectedTaskForDetail}
           open={taskDetailOpen}
           onOpenChange={setTaskDetailOpen}
+          onTaskUpdate={handleTaskDetailUpdate}
         />
 
         {showNewTaskDialog && (
@@ -1283,6 +1326,34 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
             defaultPhase={activePhase || undefined}
           />
         )}
+
+        {/* Add Phase Dialog */}
+        <AddPhaseDialog
+          open={showCreatePhaseDialog}
+          onOpenChange={(open) => {
+            setShowCreatePhaseDialog(open);
+            if (!open) {
+              setSelectedProjectForPhase(null);
+            }
+          }}
+          projectId={selectedProjectForPhase || ''}
+          onPhaseCreated={(newPhase) => {
+            // Add new phase to local state
+            if (selectedProjectForPhase) {
+              const convertedPhase: Phase = {
+                id: newPhase.phaseID || newPhase.id,
+                name: newPhase.name,
+                color: newPhase.color || '#3B82F6',
+                taskCount: 0,
+                completedCount: 0,
+              };
+              setProjectPhases(prev => ({
+                ...prev,
+                [selectedProjectForPhase]: [...(prev[selectedProjectForPhase] || []), convertedPhase]
+              }));
+            }
+          }}
+        />
       </div>
     </DndProvider>
   );

@@ -11,8 +11,8 @@ interface SimpleAuthRealProps {
   onAuthSuccess: (user: User) => void;
 }
 
-// Default SiteCode for ACME Corporation
-const DEFAULT_SITE_CODE = 'ACME';
+// Default SiteCode for DEMO
+const DEFAULT_SITE_CODE = 'DEMO';
 
 export function SimpleAuthReal({ onAuthSuccess }: SimpleAuthRealProps) {
   const [loading, setLoading] = useState(false);
@@ -20,8 +20,8 @@ export function SimpleAuthReal({ onAuthSuccess }: SimpleAuthRealProps) {
   const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     siteCode: DEFAULT_SITE_CODE,
-    email: 'admin@acme.com',
-    password: 'admin123',
+    email: 'admin@demo.com',
+    password: 'Admin@2025!',
     name: ''
   });
 
@@ -83,8 +83,8 @@ export function SimpleAuthReal({ onAuthSuccess }: SimpleAuthRealProps) {
 
     try {
       const response = await authApi.login(
-        'admin@acme.com',
-        'admin123',
+        'admin@demo.com',
+        'Admin@2025!',
         DEFAULT_SITE_CODE
       );
 
@@ -136,26 +136,22 @@ export function SimpleAuthReal({ onAuthSuccess }: SimpleAuthRealProps) {
                   <div className="space-y-2">
                     <label className="text-sm font-medium flex items-center gap-2">
                       <Building2 className="w-4 h-4" />
-                      Site ID (GUID)
+                      Site Code
                     </label>
                     <Input
                       type="text"
-                      placeholder="9A25EC5C-5E1D-4013-BF0E-48AD4DB30EAE"
-                      value={formData.siteID}
-                      onChange={(e) => setFormData({ ...formData, siteID: e.target.value })}
+                      placeholder="DEMO"
+                      value={formData.siteCode}
+                      onChange={(e) => setFormData({ ...formData, siteCode: e.target.value })}
                       required
-                      className="font-mono text-sm"
                     />
-                    <p className="text-xs text-gray-500">
-                      Default: ACME Corporation
-                    </p>
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Email</label>
                     <Input
                       type="email"
-                      placeholder="admin@acme.com"
+                      placeholder="admin@demo.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
@@ -220,7 +216,7 @@ export function SimpleAuthReal({ onAuthSuccess }: SimpleAuthRealProps) {
                     onClick={handleQuickLogin}
                     disabled={loading}
                   >
-                    Quick Login (ACME Admin)
+                    Quick Login (DEMO Admin)
                   </Button>
                 </div>
               </TabsContent>
@@ -231,15 +227,14 @@ export function SimpleAuthReal({ onAuthSuccess }: SimpleAuthRealProps) {
                   <div className="space-y-2">
                     <label className="text-sm font-medium flex items-center gap-2">
                       <Building2 className="w-4 h-4" />
-                      Site ID (GUID)
+                      Site Code
                     </label>
                     <Input
                       type="text"
-                      placeholder="9A25EC5C-5E1D-4013-BF0E-48AD4DB30EAE"
-                      value={formData.siteID}
-                      onChange={(e) => setFormData({ ...formData, siteID: e.target.value })}
+                      placeholder="DEMO"
+                      value={formData.siteCode}
+                      onChange={(e) => setFormData({ ...formData, siteCode: e.target.value })}
                       required
-                      className="font-mono text-sm"
                     />
                   </div>
 
@@ -316,9 +311,9 @@ export function SimpleAuthReal({ onAuthSuccess }: SimpleAuthRealProps) {
             <div className="text-sm space-y-2">
               <p className="font-semibold text-blue-900">Test Credentials:</p>
               <div className="space-y-1 text-blue-800">
-                <p><strong>Site ID:</strong> <code className="text-xs bg-white px-1 py-0.5 rounded">9A25EC5C-5E1D-4013-BF0E-48AD4DB30EAE</code></p>
-                <p><strong>Email:</strong> admin@acme.com</p>
-                <p><strong>Password:</strong> admin123</p>
+                <p><strong>Site Code:</strong> DEMO</p>
+                <p><strong>Email:</strong> admin@demo.com</p>
+                <p><strong>Password:</strong> Admin@2025!</p>
               </div>
             </div>
           </CardContent>

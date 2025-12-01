@@ -314,6 +314,30 @@ namespace TaskFlow.API.Controllers
         }
 
         /// <summary>
+        /// Get subtasks by parent task ID
+        /// </summary>
+        /// <param name="parentTaskId">Parent task ID</param>
+        /// <returns>List of subtasks</returns>
+        [HttpGet("parent/{parentTaskId}")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<TaskDto>>>> GetByParentTask(Guid parentTaskId)
+        {
+            try
+            {
+                var siteId = GetSiteId();
+                var tasks = await _taskRepository.GetByParentTaskAsync(siteId, parentTaskId);
+
+                var taskDtos = tasks.Select(MapToDto);
+
+                return Success(taskDtos, "Subtasks retrieved successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving subtasks for parent task {ParentTaskId}", parentTaskId);
+                return StatusCode(500, ApiResponse<IEnumerable<TaskDto>>.ErrorResponse("Error retrieving subtasks"));
+            }
+        }
+
+        /// <summary>
         /// Get overdue tasks for current tenant
         /// </summary>
         /// <returns>List of overdue tasks</returns>

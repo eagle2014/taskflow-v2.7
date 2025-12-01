@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { Space, Phase, WorkspaceTask } from '../types';
 import { STORAGE_KEYS } from '../constants';
-import { initializeWorkspaceData } from '../../../data/projectWorkspaceMockData';
+import { initializeWorkspaceData } from '../../../services/spacesService';
 
 interface UseWorkspaceDataProps {
   spaces: Space[];

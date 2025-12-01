@@ -45,7 +45,7 @@ import {
   ContextMenuSubContent
 } from '../ui/context-menu';
 import { toast } from 'sonner';
-import type { Space, Phase } from '../../data/projectWorkspaceMockData';
+import type { Space, Phase } from '../../types/workspace';
 import type { Project, User } from '../../services/api';
 
 // Main menu items
@@ -78,7 +78,7 @@ interface WorkspaceSidebarProps {
   onNavigateHome?: () => void;
   onCreateSpace: () => void;
   onCreateProject: (spaceId: string) => void;
-  onCreatePhase: (spaceId: string) => void;
+  onCreatePhase: (projectId: string) => void;
   onEditSpace: (spaceId: string) => void;
   onDeleteSpace: (spaceId: string) => void;
   onEditProject: (projectId: string) => void;
@@ -424,13 +424,6 @@ export function WorkspaceSidebar({
                               <Rocket className="w-4 h-4 mr-2" />
                               Project
                             </ContextMenuItem>
-                            <ContextMenuItem
-                              onClick={() => onCreatePhase(space.id)}
-                              className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer"
-                            >
-                              <CheckSquare className="w-4 h-4 mr-2" />
-                              Phase
-                            </ContextMenuItem>
                           </ContextMenuSubContent>
                         </ContextMenuSub>
 
@@ -620,7 +613,7 @@ export function WorkspaceSidebar({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onCreatePhase(space.id);
+                                onCreatePhase(projectId);
                               }}
                               className="flex items-center gap-2 w-full pl-8 pr-2 py-1 text-sm text-[#838a9c] hover:text-[#0394ff] hover:bg-[#292d39] transition-colors rounded"
                             >

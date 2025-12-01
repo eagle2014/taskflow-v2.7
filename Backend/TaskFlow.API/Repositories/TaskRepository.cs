@@ -137,5 +137,12 @@ namespace TaskFlow.API.Repositories
             var parameters = new { SiteID = siteId, Days = days };
             return await connection.QueryAsync<Models.Entities.Task>("sp_Task_GetDueSoon", parameters, commandType: System.Data.CommandType.StoredProcedure);
         }
+
+        public async Task<IEnumerable<Models.Entities.Task>> GetByParentTaskAsync(string siteId, Guid parentTaskId)
+        {
+            using var connection = GetConnection();
+            var parameters = new { SiteID = siteId, ParentTaskID = parentTaskId };
+            return await connection.QueryAsync<Models.Entities.Task>("sp_Task_GetByParentTask", parameters, commandType: System.Data.CommandType.StoredProcedure);
+        }
     }
 }

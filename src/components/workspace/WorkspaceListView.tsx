@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
-import type { WorkspaceTask } from '../../data/projectWorkspaceMockData';
+import type { WorkspaceTask } from '../../types/workspace';
 import { DraggableTaskRow } from './DraggableTaskRow';
 
 interface WorkspaceListViewProps {

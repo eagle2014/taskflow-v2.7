@@ -76,7 +76,10 @@ export interface Task {
   estimatedHours?: number;
   actualHours?: number;
   progress?: number;
+  budget?: number;
+  spent?: number;
   tags?: string;
+  sectionName?: string;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -434,6 +437,11 @@ export const tasksApi = {
 
   async getDueSoon(days: number): Promise<Task[]> {
     const response = await client.get<Task[]>(`/tasks/due-soon/${days}`);
+    return response.data || [];
+  },
+
+  async getByParentTask(parentTaskId: string): Promise<Task[]> {
+    const response = await client.get<Task[]>(`/tasks/parent/${parentTaskId}`);
     return response.data || [];
   },
 };
