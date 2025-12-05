@@ -7,8 +7,7 @@ namespace TaskFlow.API.Models.DTOs.Task
     /// </summary>
     public class CreateTaskDto
     {
-        [Required(ErrorMessage = "Project ID is required")]
-        public Guid ProjectID { get; set; }
+        public Guid? ProjectID { get; set; }  // Optional for subtasks (only ParentTaskID needed)
 
         public Guid? PhaseID { get; set; }
         public Guid? ParentTaskID { get; set; }

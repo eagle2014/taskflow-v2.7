@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { useI18n } from '../utils/i18n/context';
 import { NewProjectForm } from './NewProjectForm';
+import { CreateProjectDialog } from './CreateProjectDialog';
+import { EditProjectDialog } from './EditProjectDialog';
 import { KanbanBoard } from './KanbanBoard';
 import { ProjectDetail } from './ProjectDetail';
 import {
@@ -162,7 +164,7 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
   };
 
   const handleProjectDoubleClick = (project: Project) => {
-    setViewingProjectDetail(project);
+    setEditingProject(project);
   };
 
   const handleBackFromDetail = () => {
@@ -523,39 +525,30 @@ export function Projects({ onNavigate, onSelectProject, currentUser }: ProjectsP
         </div>
       )}
 
-      {/* New Project Dialog */}
-      <Dialog open={showNewProject} onOpenChange={setShowNewProject}>
-        <DialogContent className="bg-[#292d39] border-[#3d4457] text-white max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
-            <DialogDescription className="text-[#838a9c]">
-              Add a new project to your workspace
-            </DialogDescription>
-          </DialogHeader>
-          <NewProjectForm
-            onSave={handleCreateProject}
-            onCancel={() => setShowNewProject(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* New Project Dialog - VTiger Style with CRM */}
+      {showNewProject && (
+        <CreateProjectDialog
+          onClose={() => setShowNewProject(false)}
+          onCreated={(project) => {
+            setProjects(prev => [project, ...prev]);
+            setShowNewProject(false);
+            toast.success(t('message.projectCreated'));
+          }}
+        />
+      )}
 
-      {/* Edit Project Dialog */}
+      {/* Edit Project Dialog - VTiger Style */}
       {editingProject && (
-        <Dialog open={!!editingProject} onOpenChange={() => setEditingProject(null)}>
-          <DialogContent className="bg-[#292d39] border-[#3d4457] text-white max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Edit Project</DialogTitle>
-              <DialogDescription className="text-[#838a9c]">
-                Update project details
-              </DialogDescription>
-            </DialogHeader>
-            <NewProjectForm
-              onSave={handleUpdateProject}
-              onCancel={() => setEditingProject(null)}
-              initialData={editingProject}
-            />
-          </DialogContent>
-        </Dialog>
+        <EditProjectDialog
+          projectId={editingProject.projectID}
+          onClose={() => setEditingProject(null)}
+          onUpdated={(updatedProject) => {
+            setProjects(prev => prev.map(p =>
+              p.projectID === updatedProject.projectID ? updatedProject : p
+            ));
+            setEditingProject(null);
+          }}
+        />
       )}
 
       {/* Delete Confirmation Dialog */}

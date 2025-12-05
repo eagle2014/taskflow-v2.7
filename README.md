@@ -1,25 +1,26 @@
 # Modern Task Management System v2.7
 
-A powerful, multi-tenant task management platform built with React, .NET 8.0, and SQL Server. Features comprehensive project management, multiple workspace views (Kanban, Gantt, Mind Map), and real-time collaboration capabilities.
+A comprehensive, multi-tenant task management platform built with React 18, .NET 8.0, and SQL Server. Features advanced project management, multiple workspace views (List, Kanban, Gantt, Mind Map), CRM capabilities, and collaborative task tracking.
 
 ![Version](https://img.shields.io/badge/version-2.7-blue.svg)
 ![React](https://img.shields.io/badge/React-18.3.1-61DAFB?logo=react)
 ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=.net)
 ![SQL Server](https://img.shields.io/badge/SQL%20Server-2022-CC2927?logo=microsoft-sql-server)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
+![Status](https://img.shields.io/badge/Status-Phase%201%20Complete-brightgreen)
 
-## Features
+## Core Features
 
-- **Multi-Tenant Architecture** - Complete isolation between organizations
-- **Project Management** - Create, organize, and track projects with categories
-- **Task Management** - Hierarchical tasks with subtasks, phases, and dependencies
-- **Multiple Views** - Kanban board, Gantt chart, Mind map, and List view
-- **Collaboration** - Team management, task comments, and activity tracking
-- **Calendar Integration** - Event management with project/task linking
-- **Authentication & Authorization** - JWT-based with role-based access control
-- **Modern UI** - Built with shadcn/ui and Tailwind CSS
-- **RESTful API** - Comprehensive .NET Web API with Swagger documentation
-- **Docker Support** - Full containerized development and deployment
+- **Multi-Tenant Architecture** - Shared database with complete tenant isolation via SiteID
+- **Project Management** - Create, categorize, track projects with budget and timeline management
+- **Task Management** - Hierarchical tasks with subtasks, phases, dependencies, and budget tracking
+- **Multiple Views** - List (table), Kanban (drag-drop), Gantt (timeline), Mind Map (hierarchy)
+- **CRM Integration** - Customers, Contacts, Deals, and Quotes management linked to projects
+- **Collaboration** - Team management, task comments with nested replies, activity timeline
+- **Calendar System** - Event management with project/task linking and date tracking
+- **Dual Authentication** - Legacy JWT + Logto OAuth/OIDC support for flexible auth
+- **RESTful API** - 14 controllers, 50+ endpoints with Swagger/OpenAPI documentation
+- **Docker Ready** - Full containerized development environment with SQL Server
 
 ## Quick Start
 
@@ -414,5 +415,5 @@ This project uses:
 ---
 
 **Version**: 2.7
-**Last Updated**: 2025-10-30
+**Last Updated**: 2025-12-03
 **Original Design**: [Figma Project](https://www.figma.com/design/adsyzOXvBZHfpDBbYoJcg1/Modern-Task-Management-System_v2.3)

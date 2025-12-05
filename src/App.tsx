@@ -11,6 +11,7 @@ import { Reports } from './components/Reports';
 import { MyTasks } from './components/MyTasks';
 import { Team } from './components/Team';
 import { Settings } from './components/Settings';
+import { DealsView } from './components/DealsView';
 import LogtoAuth from './components/LogtoAuth';
 import LogtoCallback from './components/LogtoCallback';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -95,6 +96,8 @@ function Workspace() {
         return <Projects onNavigate={setCurrentView} onSelectProject={() => {}} currentUser={currentUser} />;
       case 'project-workspace':
         return null; // Handled separately for fullscreen mode
+      case 'deals':
+        return <DealsView currentUser={currentUser} />;
       case 'my-tasks':
         return <MyTasks currentUser={currentUser} />;
       case 'calendar':
@@ -145,13 +148,17 @@ function Workspace() {
           onSignOut={handleSignOut}
           user={currentUser}
         />
-        <main className="flex-1 overflow-auto taskflow-scrollbar">
+        <main className="flex-1 overflow-hidden flex flex-col">
           {currentView === 'calendar' ? (
-            <div className="animate-fade-in">
+            <div className="animate-fade-in h-full">
               <Calendar currentUser={currentUser} />
             </div>
+          ) : currentView === 'deals' ? (
+            <div className="animate-fade-in h-full p-4 flex flex-col">
+              <DealsView currentUser={currentUser} />
+            </div>
           ) : (
-            <div className="p-6 animate-slide-in">
+            <div className="p-6 animate-slide-in overflow-auto taskflow-scrollbar flex-1">
               {renderView()}
             </div>
           )}

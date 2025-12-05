@@ -912,6 +912,181 @@ export const phasesApi = {
   },
 };
 
+// ============================================================================
+// CRM API
+// ============================================================================
+import type {
+  Customer,
+  Contact,
+  Deal,
+  Quote,
+  CreateCustomerDTO,
+  CreateContactDTO,
+  CreateDealDTO,
+  CustomerSearchDTO,
+  ContactSearchDTO,
+  DealSearchDTO
+} from '../types/crm';
+
+export const customersApi = {
+  async getAll(): Promise<Customer[]> {
+    const response = await client.get<Customer[]>('/customers');
+    return response.data || [];
+  },
+
+  async getById(id: string): Promise<Customer> {
+    const response = await client.get<Customer>(`/customers/${id}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Customer not found');
+  },
+
+  async create(customer: CreateCustomerDTO): Promise<Customer> {
+    const response = await client.post<Customer>('/customers', customer);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to create customer');
+  },
+
+  async update(id: string, customer: Partial<CreateCustomerDTO>): Promise<Customer> {
+    const response = await client.put<Customer>(`/customers/${id}`, customer);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to update customer');
+  },
+
+  async delete(id: string): Promise<void> {
+    const response = await client.delete(`/customers/${id}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete customer');
+    }
+  },
+
+  async search(params: CustomerSearchDTO): Promise<Customer[]> {
+    const response = await client.post<Customer[]>('/customers/search', params);
+    return response.data || [];
+  },
+};
+
+export const contactsApi = {
+  async getAll(): Promise<Contact[]> {
+    const response = await client.get<Contact[]>('/contacts');
+    return response.data || [];
+  },
+
+  async getById(id: string): Promise<Contact> {
+    const response = await client.get<Contact>(`/contacts/${id}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Contact not found');
+  },
+
+  async getByCustomer(customerId: string): Promise<Contact[]> {
+    const response = await client.get<Contact[]>(`/contacts/customer/${customerId}`);
+    return response.data || [];
+  },
+
+  async create(contact: CreateContactDTO): Promise<Contact> {
+    const response = await client.post<Contact>('/contacts', contact);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to create contact');
+  },
+
+  async update(id: string, contact: Partial<CreateContactDTO>): Promise<Contact> {
+    const response = await client.put<Contact>(`/contacts/${id}`, contact);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to update contact');
+  },
+
+  async delete(id: string): Promise<void> {
+    const response = await client.delete(`/contacts/${id}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete contact');
+    }
+  },
+
+  async search(params: ContactSearchDTO): Promise<Contact[]> {
+    const response = await client.post<Contact[]>('/contacts/search', params);
+    return response.data || [];
+  },
+};
+
+export const dealsApi = {
+  async getAll(): Promise<Deal[]> {
+    const response = await client.get<Deal[]>('/deals');
+    return response.data || [];
+  },
+
+  async getById(id: string): Promise<Deal> {
+    const response = await client.get<Deal>(`/deals/${id}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Deal not found');
+  },
+
+  async getByCustomer(customerId: string): Promise<Deal[]> {
+    const response = await client.get<Deal[]>(`/deals/customer/${customerId}`);
+    return response.data || [];
+  },
+
+  async create(deal: CreateDealDTO): Promise<Deal> {
+    const response = await client.post<Deal>('/deals', deal);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to create deal');
+  },
+
+  async update(id: string, deal: Partial<CreateDealDTO>): Promise<Deal> {
+    const response = await client.put<Deal>(`/deals/${id}`, deal);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to update deal');
+  },
+
+  async delete(id: string): Promise<void> {
+    const response = await client.delete(`/deals/${id}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete deal');
+    }
+  },
+
+  async search(params: DealSearchDTO): Promise<Deal[]> {
+    const response = await client.post<Deal[]>('/deals/search', params);
+    return response.data || [];
+  },
+};
+
+export const quotesApi = {
+  async getAll(): Promise<Quote[]> {
+    const response = await client.get<Quote[]>('/quotes');
+    return response.data || [];
+  },
+
+  async getById(id: string): Promise<Quote> {
+    const response = await client.get<Quote>(`/quotes/${id}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Quote not found');
+  },
+
+  async getByDeal(dealId: string): Promise<Quote[]> {
+    const response = await client.get<Quote[]>(`/quotes/deal/${dealId}`);
+    return response.data || [];
+  },
+};
+
 // Export all
 export default {
   auth: authApi,
@@ -923,4 +1098,8 @@ export default {
   comments: commentsApi,
   spaces: spacesApi,
   phases: phasesApi,
+  customers: customersApi,
+  contacts: contactsApi,
+  deals: dealsApi,
+  quotes: quotesApi,
 };

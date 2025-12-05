@@ -52,6 +52,13 @@ namespace TaskFlow.API.Repositories
                 entity.Priority,
                 entity.StartDate,
                 entity.EndDate,
+                entity.AssigneeID,
+                entity.CustomerID,
+                entity.ContactID,
+                entity.DealID,
+                entity.ActualEndDate,
+                entity.ProjectUrl,
+                entity.Progress,
                 entity.CreatedBy
             };
             await connection.ExecuteAsync("sp_Project_Create", parameters, commandType: System.Data.CommandType.StoredProcedure);
@@ -71,7 +78,14 @@ namespace TaskFlow.API.Repositories
                 entity.Status,
                 entity.Priority,
                 entity.StartDate,
-                entity.EndDate
+                entity.EndDate,
+                entity.AssigneeID,
+                entity.CustomerID,
+                entity.ContactID,
+                entity.DealID,
+                entity.ActualEndDate,
+                entity.ProjectUrl,
+                entity.Progress
             };
             await connection.ExecuteAsync("sp_Project_Update", parameters, commandType: System.Data.CommandType.StoredProcedure);
             return entity;

@@ -10,4 +10,4 @@ if ($process) {
 }
 
 Write-Host "Starting Vite dev server on port $port..." -ForegroundColor Cyan
-npm run dev
+npx vite

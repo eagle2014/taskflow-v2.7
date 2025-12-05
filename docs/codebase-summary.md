@@ -1,25 +1,25 @@
 # Codebase Summary
 
 **Project:** Modern Task Management System v2.7
-**Generated:** 2025-10-30
-**Repository:** Multi-tenant task management application with React frontend and .NET backend
+**Updated:** 2025-12-03
+**Status:** Phase 1 Complete (TaskDetailDialog Redesign & CRM Implementation)
+**Repo Type:** Multi-tenant, full-stack web application
 
 ---
 
 ## Executive Summary
 
-Modern Task Management System v2.7 is a full-stack, multi-tenant task management platform featuring:
-- **Frontend**: React 18.3.1 + TypeScript + Vite, with shadcn/ui component library
-- **Backend**: .NET 8.0 Web API with JWT authentication
-- **Database**: Microsoft SQL Server 2022 with Dapper ORM
-- **Infrastructure**: Docker Compose for local development and deployment
-- **AI Integration**: Comprehensive Claude AI agent configuration for assisted development
+Modern Task Management System v2.7 is a comprehensive, multi-tenant task management platform with integrated CRM capabilities. The system features a React 18 frontend, .NET 8.0 backend, SQL Server database, and Docker-based deployment stack. Recent Phase 1 completion includes TaskDetailDialog redesign with dark theme support, responsive fixes, and CRM entity integration (Customers, Contacts, Deals, Quotes).
 
 **Key Metrics:**
-- Total files: 622 tracked files
-- Total tokens: ~1.54 million
-- Total characters: ~5.81 million
-- Largest file: ProjectWorkspace.tsx (233KB, 48k tokens)
+- Total files: 470 (code + config + docs)
+- Total tokens: 686,283
+- Total characters: 2,788,400
+- Controllers: 14 (Auth, Projects, Tasks, Phases, Spaces, Categories, Comments, Events, Users, Customers, Contacts, Deals, Quotes, Logto)
+- API Endpoints: 50+
+- Frontend Components: 50+ (UI library + feature components)
+- Backend Entities: 13 (Core + CRM)
+- Repositories: 11
 
 ---
 
@@ -27,205 +27,443 @@ Modern Task Management System v2.7 is a full-stack, multi-tenant task management
 
 ```
 Modern Task Management System_v2.7/
-├── src/                          # React/TypeScript frontend
-│   ├── components/               # React components
-│   │   ├── ui/                   # shadcn/ui component library (30+)
-│   │   ├── workspace/            # Project workspace feature module
-│   │   └── *.tsx                 # Feature components
-│   ├── services/                 # API client and adapters
-│   ├── types/                    # TypeScript type definitions
-│   ├── utils/                    # Utility functions
-│   ├── data/                     # Mock data
-│   ├── App.tsx                   # Root component
-│   └── main.tsx                  # Application entry point
+├── src/                                   # React 18 Frontend
+│   ├── components/
+│   │   ├── ui/                           # shadcn/ui + Radix (30+ components)
+│   │   ├── TaskDetailDialog/             # Redesigned task detail panel
+│   │   │   ├── TaskDetailDialog.tsx      # Main component
+│   │   │   ├── components/               # Subcomponents (Header, Tabs, Actions)
+│   │   │   ├── fields/                   # Input fields (DatePicker, Status, etc)
+│   │   │   ├── hooks/                    # useAutoSave custom hook
+│   │   │   └── types.ts                  # Type definitions
+│   │   ├── workspace/                    # Project workspace module
+│   │   │   ├── WorkspaceListView.tsx     # Table-based task view
+│   │   │   ├── WorkspaceSidebar.tsx      # Navigation sidebar
+│   │   │   ├── WorkspaceToolbar.tsx      # View controls
+│   │   │   ├── hooks/                    # Custom hooks (useTaskManagement, etc)
+│   │   │   └── utils/                    # Calculation/helper utilities
+│   │   ├── Projects.tsx                  # Project list view
+│   │   ├── CreateProjectDialog.tsx       # Project creation with CRM links
+│   │   ├── EditProjectDialog.tsx         # Project editing
+│   │   ├── KanbanBoard.tsx               # Kanban view
+│   │   ├── GanttChart.tsx                # Gantt timeline
+│   │   ├── MindMapView.tsx               # Hierarchical view
+│   │   ├── Calendar.tsx                  # Calendar events
+│   │   ├── DealsView.tsx                 # CRM deals dashboard
+│   │   ├── CreateCustomerDialog.tsx      # CRM customer creation
+│   │   ├── CreateContactDialog.tsx       # CRM contact creation
+│   │   ├── CreateDealDialog.tsx          # CRM deal creation
+│   │   └── [40+ other feature components]
+│   ├── services/
+│   │   ├── api.ts                        # Main API client with auth interceptors
+│   │   ├── spacesService.ts              # Spaces API service
+│   │   └── eventsAdapter.ts              # Event adapter
+│   ├── config/
+│   │   └── logto.config.ts               # Logto OAuth/OIDC configuration
+│   ├── hooks/
+│   │   └── useDebounce.ts                # Debounce hook for form inputs
+│   ├── types/
+│   │   ├── api-types.tsx                 # API response types
+│   │   ├── crm.ts                        # CRM type definitions
+│   │   └── workspace.ts                  # Workspace types
+│   ├── utils/
+│   │   ├── api/                          # API utilities by feature
+│   │   └── i18n/                         # Internationalization
+│   ├── App.tsx                           # Root component
+│   ├── main.tsx                          # Entry point
+│   └── index.css                         # Tailwind + custom styles
 │
-├── Backend/                      # .NET 8.0 Web API
-│   ├── TaskFlow.API/             # Main API project
-│   │   ├── Controllers/          # API endpoints (10 controllers)
-│   │   ├── Models/               # Entities and DTOs
-│   │   │   ├── Entities/         # Domain models (9 entities)
-│   │   │   └── DTOs/             # Data transfer objects (40+)
-│   │   ├── Repositories/         # Data access layer (8 repositories)
-│   │   ├── Services/             # Business logic (2 services)
-│   │   ├── Middleware/           # Error handling middleware
-│   │   └── Program.cs            # Application startup
-│   └── Database/                 # SQL Server scripts
-│       └── *.sql                 # Schema and seed data scripts
+├── Backend/
+│   ├── TaskFlow.API/                     # .NET 8.0 Web API
+│   │   ├── Controllers/                  # 14 API endpoints
+│   │   │   ├── AuthController.cs         # JWT + token management
+│   │   │   ├── LogtoController.cs        # Logto OAuth/OIDC integration
+│   │   │   ├── ProjectsController.cs     # Project CRUD with CRM links
+│   │   │   ├── TasksController.cs        # Task CRUD + hierarchy
+│   │   │   ├── PhasesController.cs       # Phase management
+│   │   │   ├── SpacesController.cs       # Space/section management
+│   │   │   ├── CategoriesController.cs   # Category management
+│   │   │   ├── CommentsController.cs     # Task comments
+│   │   │   ├── EventsController.cs       # Calendar events
+│   │   │   ├── UsersController.cs        # User management
+│   │   │   ├── CustomersController.cs    # CRM customers
+│   │   │   ├── ContactsController.cs     # CRM contacts
+│   │   │   ├── DealsController.cs        # CRM deals
+│   │   │   ├── QuotesController.cs       # CRM quotes
+│   │   │   └── Base/ApiControllerBase.cs # Base controller with tenant helpers
+│   │   ├── Models/
+│   │   │   ├── Entities/                 # Domain models (13 total)
+│   │   │   │   ├── Core: Site, User, Project, Task, Phase, Space, Category, Comment, CalendarEvent
+│   │   │   │   └── CRM: Customer, Contact, Deal, Quote, QuoteItem
+│   │   │   └── DTOs/                     # Data transfer objects (50+)
+│   │   │       ├── Auth/                 # Login, Register, TokenRefresh
+│   │   │       ├── Project/              # CreateProject, UpdateProject
+│   │   │       ├── Task/                 # CreateTask, UpdateTask
+│   │   │       ├── Customer/             # CreateCustomer, UpdateCustomer
+│   │   │       ├── Contact/              # CreateContact, UpdateContact
+│   │   │       ├── Deal/                 # CreateDeal, UpdateDeal
+│   │   │       ├── Quote/                # CreateQuote, UpdateQuote
+│   │   │       └── [Other feature DTOs]
+│   │   ├── Repositories/                 # Data access layer (11 total)
+│   │   │   ├── Interfaces/               # Repository contracts
+│   │   │   └── [Implementations]         # Dapper-based queries
+│   │   ├── Services/                     # Business logic
+│   │   │   ├── AuthService.cs            # Authentication & JWT
+│   │   │   ├── LogtoAuthService.cs       # Logto integration
+│   │   │   ├── TokenService.cs           # Token generation/validation
+│   │   │   └── IAuthService/ITokenService # Interfaces
+│   │   ├── Middleware/
+│   │   │   └── ErrorHandlerMiddleware.cs # Global error handling
+│   │   ├── Program.cs                    # Startup configuration
+│   │   └── appsettings.json              # Configuration (DB, JWT, Logto)
+│   │
+│   └── Database/
+│       ├── 00_Full_Schema_And_Data.sql   # Complete schema
+│       ├── 10-42_*.sql                   # Migration scripts
+│       ├── 40_CRM_Entities.sql           # CRM tables (Customer, Contact, Deal, Quote)
+│       ├── 41_CRM_Fix_Indexes.sql        # CRM index optimization
+│       └── [Stored procedures for all entities]
 │
-├── .claude/                      # AI agent configuration
-│   ├── agents/                   # Agent role definitions (15 agents)
-│   ├── commands/                 # Slash commands (30+)
-│   ├── skills/                   # Skill libraries (20+)
-│   └── workflows/                # Development workflows
+├── docker/                               # Docker configuration
+│   ├── docker-compose.yml                # Multi-service orchestration
+│   ├── backend/Dockerfile                # .NET API image
+│   ├── frontend/Dockerfile               # React app image
+│   └── database/                         # SQL Server setup
 │
-├── docs/                         # Project documentation
-├── tests/                        # E2E tests
-├── scripts/                      # PowerShell automation scripts
-├── plans/                        # Implementation plans and reports
-├── docker-compose.yml            # Container orchestration
-├── package.json                  # Frontend dependencies
-└── vite.config.ts                # Vite build configuration
+├── .claude/                              # AI Agent configuration
+│   ├── agents/                           # 15 agent roles
+│   ├── commands/                         # 30+ slash commands
+│   ├── skills/                           # 20+ skill libraries
+│   └── workflows/                        # Development workflows
+│
+├── docs/                                 # Project documentation
+│   ├── codebase-summary.md               # This file
+│   ├── project-overview-pdr.md           # Requirements & spec
+│   ├── code-standards.md                 # Coding conventions
+│   ├── system-architecture.md            # Architecture details
+│   ├── project-roadmap.md                # Implementation status
+│   ├── deployment-guide.md               # Deploy procedures
+│   ├── design-guidelines.md              # UI/UX patterns
+│   └── logto-integration-guide.md        # Logto setup
+│
+├── package.json                          # Frontend dependencies
+├── vite.config.ts                        # Vite build config
+├── docker-compose.yml                    # Docker orchestration
+├── CLAUDE.md                             # Project guidelines
+└── README.md                             # Project overview
 ```
 
 ---
 
 ## 2. Technology Stack
 
-### Frontend Stack
+### Frontend (React 18 + TypeScript + Vite)
 
 **Core Framework:**
-- React 18.3.1 - UI library with hooks and automatic JSX runtime
-- TypeScript 5.x - Type safety and developer experience
-- Vite 6.3.5 - Fast build tool with HMR using SWC compiler
+- React 18.3.1 - UI library with hooks & automatic JSX runtime
+- TypeScript 5.x - Type safety and DX
+- Vite 6.3.5 - Fast build tool with HMR + SWC compiler
+- Tailwind CSS 3.x - Utility-first styling
 
-**UI & Styling:**
-- Tailwind CSS - Utility-first CSS framework
-- shadcn/ui - Accessible component library
-- Radix UI - 30+ primitive components (accordion, dialog, dropdown, select, etc.)
-- Lucide React 0.487.0 - Icon library with 1000+ icons
-- Class Variance Authority 0.7.1 - Component variant management
+**Component Libraries:**
+- shadcn/ui - Accessible component library (30+ components)
+- Radix UI - Primitive UI components
+- Lucide React - Icon library (1000+ icons)
+- Class Variance Authority - Component variant management
 - Tailwind Merge - Utility class merging
 
 **State Management:**
-- React Hooks - Local state (useState, useEffect, useReducer)
-- Custom hooks - Feature-specific state logic in workspace module
-- LocalStorage - Token and user session persistence
+- React Hooks - Local state management
+- Custom hooks - Feature-specific logic (workspace, task management)
+- LocalStorage - Token & session persistence
 
 **Forms & Validation:**
 - React Hook Form 7.55.0 - Performant form management
-- Input OTP 1.4.2 - One-time password input components
+- Input OTP - OTP input components
 
 **Date & Time:**
-- date-fns - Modern date utility library
-- React Day Picker 8.10.1 - Accessible calendar component
+- date-fns - Date utilities
+- React Day Picker - Calendar picker
 
 **Data Visualization:**
-- Recharts 2.15.2 - Composable chart library
-- Custom Gantt chart implementation
-- Custom Mind map visualization
+- Recharts 2.15.2 - Chart library
+- Custom Gantt implementation
+- Custom Mind Map visualization
 
 **Drag & Drop:**
-- react-dnd - Flexible drag and drop framework
-- react-dnd-html5-backend - HTML5 drag and drop backend
-- react-draggable - Simple draggable components
-- re-resizable - Resizable panels and components
-- React Resizable Panels 2.1.7 - Declarative resizable panel groups
+- react-dnd - Flexible drag-drop framework
+- react-dnd-html5-backend - HTML5 backend
+- re-resizable - Resizable panels
 
 **UI Enhancements:**
-- Sonner 2.0.3 - Beautiful toast notifications
-- Embla Carousel 8.6.0 - Extensible carousel/slider
-- Vaul 1.1.2 - Drawer/modal component
-- CMDK 1.1.1 - Command palette/menu
+- Sonner 2.0.3 - Toast notifications
+- Embla Carousel - Carousel/slider
+- Vaul - Drawer/modal
+- CMDK - Command palette
 
-**Development Tools:**
-- @vitejs/plugin-react-swc - Fast refresh with SWC compiler
-- @types/node 20.10.0 - Node.js type definitions
-- TSX 4.7.0 - Execute TypeScript files directly
-
-### Backend Stack
+### Backend (.NET 8.0 + C# 12)
 
 **Framework:**
-- .NET 8.0 LTS - Latest long-term support version
-- ASP.NET Core Web API - RESTful API framework
+- .NET 8.0 LTS - Latest stable framework
+- ASP.NET Core Web API - RESTful API
 - C# 12 - Modern language features
 
 **Authentication & Security:**
-- Microsoft.AspNetCore.Authentication.JwtBearer 8.0.0 - JWT authentication middleware
-- System.IdentityModel.Tokens.Jwt 7.0.3 - JWT token handling
-- BCrypt.Net-Next 4.0.3 - Secure password hashing (cost factor 10)
+- JWT Bearer Authentication - Token-based auth
+- BCrypt.Net-Next 4.0.3 - Password hashing (cost 10)
+- Rate Limiting - Brute-force protection
+- CORS Configuration - Cross-origin support
 
-**Database & ORM:**
-- Microsoft.Data.SqlClient 5.1.5 - SQL Server data provider
-- Dapper 2.1.35 - Lightweight micro-ORM for performance
-- SQL Server 2022 - Enterprise-grade RDBMS
+**Data Access:**
+- Dapper 2.1.35 - Lightweight micro-ORM
+- Microsoft.Data.SqlClient - SQL Server provider
+- Stored Procedures - Complex queries
 
 **API Documentation:**
-- Swashbuckle.AspNetCore 6.5.0 - Swagger/OpenAPI generator
-- Microsoft.AspNetCore.OpenApi 8.0.0 - OpenAPI specification support
+- Swashbuckle.AspNetCore 6.5.0 - Swagger/OpenAPI
+- XML Documentation - Code comments
 
-**Development Features:**
-- Hot reload support for rapid development
-- XML documentation generation
-- Nullable reference types enabled
-- Response compression middleware
+**Middleware & Utilities:**
+- ErrorHandlerMiddleware - Global error handling
+- Response Compression - Performance optimization
+- Health Checks - Service monitoring
+
+### Database (SQL Server 2022)
+
+**Features:**
+- Multi-tenant schema with SiteID isolation
+- Stored procedures for complex queries
+- Indexes for performance optimization
+- Soft deletes (IsDeleted flag)
+- Audit timestamps (CreatedAt, UpdatedAt)
+- Foreign key constraints for referential integrity
+
+**Core Tables:**
+- Site - Tenant organizations
+- User - User accounts with JWT claims
+- Project - Project management
+- Task - Hierarchical tasks with budget
+- Phase - Workflow phases
+- Space - Task sections
+- Category - Project categories
+- Comment - Task discussions
+- CalendarEvent - Event management
+
+**CRM Tables (New):**
+- Customer - Customer management
+- Contact - Contact information
+- Deal - Sales pipeline
+- Quote - Quote generation
+- QuoteItem - Quote line items
 
 ### Infrastructure & DevOps
 
 **Containerization:**
-- Docker - Application containerization platform
-- Docker Compose - Multi-container orchestration
-- Services: SQL Server, Backend API, Frontend, DB-Init
+- Docker - Container platform
+- Docker Compose - Multi-service orchestration
+- Services: Frontend, Backend, SQL Server, DB-Init
 
 **Development Tools:**
-- PowerShell scripts - Database initialization and testing automation
-- Bash scripts - Cross-platform build and deployment
-- npm scripts - Frontend development workflow
-- E2E testing with TypeScript
-
-**Environment Configuration:**
-- Environment variables for sensitive configuration
-- Docker health checks for service dependencies
-- CORS configuration for cross-origin requests
-- Multi-environment support (Development, Production)
+- PowerShell scripts - Database automation
+- Bash scripts - Cross-platform scripts
+- npm scripts - Frontend workflows
+- dotnet CLI - Backend workflows
 
 ---
 
-## 3. Core Features
+## 3. Core Features & Implementation
 
 ### Authentication & Authorization
-- JWT-based authentication with access and refresh tokens
-- Multi-tenant isolation via SiteID
-- Role-based access control (Admin, Manager, Member)
-- Secure password hashing with BCrypt
-- Token expiration and automatic refresh
-- Site code-based tenant identification
+
+**Legacy JWT Flow:**
+1. User submits email, password, site code
+2. Backend validates credentials & generates tokens (access + refresh)
+3. Frontend stores tokens in localStorage
+4. API requests include Authorization header: `Bearer <token>`
+5. Automatic refresh on expiration via `/api/auth/refresh`
+
+**Token Claims:**
+- `UserID` - User GUID
+- `SiteID` - Tenant GUID
+- `Email` - User email
+- `Role` - User role (Admin, Manager, Member)
+- `exp` - Expiration (8 hours for access token)
+- `iat` - Issued at timestamp
+
+**Logto OAuth/OIDC (New):**
+- OAuth 2.0 authorization code flow
+- Logto endpoint: `http://localhost:3001`
+- Redirect URI: `http://localhost:5600/auth/callback`
+- Backend syncs users to local database with site mapping
+- LogtoUserSiteMappings table for multi-tenant support
+
+**Multi-Tenant Isolation:**
+- Every entity has `SiteID` column
+- All queries filtered by current user's SiteID
+- Database constraints enforce tenant boundaries
+- JWT token includes SiteID claim for context
 
 ### Project Management
+
+**Features:**
 - Create, read, update, delete projects
 - Project categorization system
-- Project status tracking (Active, Planning, On Hold, Completed, Archived)
-- Priority levels (Low, Medium, High, Critical)
-- Budget tracking
-- Date range management (start/end dates)
-- Project ownership and team assignment
+- Status tracking: Active, Planning, On Hold, Completed, Archived
+- Priority levels: Low, Medium, High, Critical
+- Budget tracking & expense management
+- Timeline management (start/end dates, actual end date)
+- Team assignment & project ownership
+- Link to CRM entities: Customer, Contact, Deal
+
+**API Endpoints:**
+- `GET /api/projects` - List all projects
+- `GET /api/projects/{id}` - Get project details
+- `POST /api/projects` - Create project
+- `PUT /api/projects/{id}` - Update project
+- `DELETE /api/projects/{id}` - Soft delete project
+- `GET /api/projects/category/{categoryId}` - Filter by category
+- `GET /api/projects/status/{status}` - Filter by status
 
 ### Task Management
-- Hierarchical task structure with subtasks
-- Task phases for workflow organization
-- Task status workflow (To Do, In Progress, Review, Done, Cancelled)
-- Priority levels
-- Progress tracking (0-100%)
-- Time estimation and actual hours tracking
-- Due date management
-- Task assignment to team members
-- Tag system for categorization
-- Drag-and-drop task reordering
+
+**Hierarchy:**
+- Projects contain Tasks
+- Tasks can have unlimited Subtasks
+- Tasks belong to Phases (workflow stages)
+- Tasks assigned to Spaces (sections)
+
+**Task Fields:**
+- Title, description, notes
+- Status: To Do, In Progress, Review, Done, Cancelled
+- Priority: Low, Medium, High, Critical
+- Progress: 0-100% completion
+- Budget & Spent hours tracking
+- Due date & timeline
+- Assigned user
+- Tags for categorization
+
+**Features:**
+- Drag-and-drop reordering
+- Phase-based workflow
+- Subtask hierarchy
+- Comment discussions (nested replies)
+- Activity timeline
+- Bulk operations
+
+**API Endpoints:**
+- `GET /api/tasks` - List tasks
+- `GET /api/tasks/{id}` - Get task details
+- `POST /api/tasks` - Create task
+- `PUT /api/tasks/{id}` - Update task
+- `DELETE /api/tasks/{id}` - Soft delete
+- `GET /api/tasks/parent/{parentTaskId}` - Get subtasks
+- `GET /api/tasks/project/{projectId}` - Filter by project
 
 ### Workspace Views
-- **List View**: Table-based task management with inline editing
-- **Kanban Board**: Visual task board with drag-and-drop between columns
-- **Gantt Chart**: Timeline visualization for project scheduling
-- **Mind Map View**: Hierarchical task relationship visualization
+
+**List View:**
+- Table-based task management
+- Inline editing of task fields
+- Column customization
+- Sorting & filtering
+- Bulk selection & operations
+
+**Kanban Board:**
+- Visual columns by status
+- Drag-and-drop between columns
+- Task cards with key information
+- Column statistics (task count, estimated hours)
+
+**Gantt Chart:**
+- Timeline visualization
+- Task duration bars
+- Dependency visualization
+- Milestone markers
+- Zoom controls
+
+**Mind Map View:**
+- Hierarchical tree structure
+- Parent-child relationships
+- Expandable nodes
+- Visual organization
+
+### CRM Integration (New Phase 1)
+
+**Customers:**
+- Customer management (B2B/B2C)
+- Business details: company name, industry, website, tax code
+- Contact info: phone, email, address, country
+- Financial: annual revenue, employee count
+- Status: Active, Inactive, Lead
+- Source tracking & notes
+
+**Contacts:**
+- Individual contact management
+- Link to Customer
+- Personal details: name, email, phone, title, department
+- Address information
+- Relationship & interaction tracking
+
+**Deals:**
+- Sales pipeline management
+- Link to Customer & Contact
+- Deal status: Lead, Negotiation, Won, Lost
+- Amount tracking
+- Timeline: expected close date, actual close date
+- Probability percentage
+- Notes & follow-up details
+
+**Quotes:**
+- Quote generation from deals
+- Quote items with individual pricing
+- Tax calculation
+- Subtotal & total amounts
+- Status: Draft, Sent, Accepted, Rejected
+- Expiration date
+- Notes
+
+**Integration with Projects:**
+- Projects can link to Customers, Contacts, Deals
+- CRM entities accessible from project detail view
+- Seamless workflow between projects and sales pipeline
+
+### Collaboration Features
+
+**Comments:**
+- Nested comment replies
+- User mentions (@ mentions)
+- Comment editing & deletion
+- Timestamps and user info
+- Activity timeline integration
+
+**Activity Timeline:**
+- Task creation, updates, deletions
+- Status changes
+- Assignment changes
+- Comment additions
+- Phase transitions
+
+**Team Management:**
+- User roles: Admin, Manager, Member
+- Project team assignment
+- Task assignment to team members
+- User profiles & avatars
 
 ### Calendar & Events
-- Calendar event management
-- Event types (Meeting, Deadline, Milestone, Review)
-- Event-project-task linking
+
+**Event Management:**
+- Create, read, update, delete events
+- Event types: Meeting, Deadline, Milestone, Review
 - Date range support
-- Location tracking
+- Location & description
+- Link to projects & tasks
+- Recurring events (future enhancement)
 
-### Collaboration
-- Team member management
-- Task comments and discussions
-- Nested comment replies
-- User avatars and profiles
-- Activity tracking
-
-### Reporting & Analytics
-- Project statistics and KPIs
-- Task completion rates
-- Team workload analysis
-- Custom report generation
+**Calendar View:**
+- Monthly/weekly/day view
+- Event visualization
+- Drag-to-create events
+- Multi-calendar support
 
 ---
 
@@ -233,593 +471,483 @@ Modern Task Management System_v2.7/
 
 ### Multi-Tenant Architecture
 
-**Pattern**: Shared database with tenant isolation via SiteID foreign key
+**Pattern:** Shared database with SiteID-based isolation
 
-**Implementation**:
-- Every entity contains `SiteID` column
-- All queries automatically filtered by current user's `SiteID`
-- Database constraints enforce tenant boundaries
-- JWT token includes `SiteID` claim for authentication context
+**Implementation:**
+- Every entity contains SiteID column (string, not GUID)
+- JWT token includes SiteID claim
+- All queries filtered: `WHERE SiteID = @siteId`
+- Database constraints: Foreign keys include SiteID
+- No tenant data leakage possible due to query filters
 
-**Base Controller**:
+**Base Controller Pattern:**
 ```csharp
 public class ApiControllerBase : ControllerBase
 {
-    protected Guid GetCurrentSiteID()
-        => Guid.Parse(User.FindFirst("SiteID")?.Value);
+    protected string GetSiteId() => User.FindFirst("SiteID")?.Value;
+    protected Guid GetUserId() => Guid.Parse(User.FindFirst("UserID")?.Value);
 
-    protected Guid GetCurrentUserID()
-        => Guid.Parse(User.FindFirst("UserID")?.Value);
+    protected IActionResult Success<T>(T data, string message = "")
+        => Ok(ApiResponse<T>.SuccessResponse(data, message));
 }
 ```
 
+**Tenant Isolation Guarantees:**
+- User claims always include SiteID
+- Controllers extract SiteID from claims
+- Repositories accept SiteID parameter
+- Database queries always filter by SiteID
+- Cannot request other tenant's data
+
 ### Repository Pattern
 
-**Purpose**: Abstract data access from business logic
+**Purpose:** Abstract data access, enable testability
 
-**Structure**:
+**Structure:**
 ```
-IRepository<T>                    (Generic interface)
+IRepository<T>                    (Base interface)
     ↓
-IProjectRepository : IRepository<Project>  (Specific interface)
+IProjectRepository : IRepository<T>  (Specific interface)
     ↓
-ProjectRepository : IProjectRepository     (Dapper implementation)
+ProjectRepository : IProjectRepository    (Dapper implementation)
 ```
 
-**Benefits**:
-- Testability through dependency injection
+**Dapper Implementation:**
+- Micro-ORM approach: Lightweight, performant
+- SQL queries with parameter binding
+- Strongly-typed result mapping
+- Stored procedures for complex logic
+- No change tracking overhead
+
+**Benefits:**
+- Testability via DI
 - Centralized data access logic
 - Easy to swap ORM or database
-- Consistent query patterns
+- Consistent patterns across codebase
 
 ### DTO Pattern
 
-**Purpose**: Separate API contracts from internal domain models
+**Purpose:** Separate API contracts from domain models
 
-**Structure**:
-- **Entities**: Internal domain models (`Models/Entities/`)
-- **DTOs**: API request/response objects (`Models/DTOs/`)
-- **Organized by feature**: Auth/, Project/, Task/, etc.
+**Structure:**
+- **Entities:** Internal domain models (Models/Entities/)
+- **DTOs:** API request/response objects (Models/DTOs/)
+- **Organization:** By feature (Auth/, Project/, Task/, CRM/)
 
-**Benefits**:
+**Benefits:**
 - API versioning flexibility
 - Prevent over-posting attacks
 - Control data exposure
 - Optimize network payloads
+- Validation separation
 
-### Error Handling
-
-**Backend**:
-- Global exception middleware (`ErrorHandlerMiddleware`)
-- Standardized `ApiResponse<T>` wrapper
-- HTTP status codes (200, 400, 401, 404, 500)
-- Detailed error messages in development
-- Generic messages in production
-
-**Frontend**:
-- Try-catch blocks in API calls
-- Toast notifications for user feedback
-- Loading states during async operations
-- Error boundaries for component errors (recommended, not fully implemented)
-
----
-
-## 5. API Architecture
-
-### Base URL
-- Development: `http://localhost:5001/api`
-- Docker: `http://backend:80/api`
-
-### Authentication Endpoints (`/api/auth`)
-- `POST /register` - User registration
-- `POST /login` - User login with JWT
-- `POST /refresh` - Refresh access token
-- `POST /logout` - User logout
-
-### Resource Endpoints
-
-**Projects** (`/api/projects`):
-- `GET /api/projects` - List projects (filtered by SiteID)
-- `GET /api/projects/{id}` - Get project details
-- `POST /api/projects` - Create new project
-- `PUT /api/projects/{id}` - Update project
-- `DELETE /api/projects/{id}` - Soft delete project
-
-**Tasks** (`/api/tasks`):
-- `GET /api/tasks` - List all tasks
-- `GET /api/tasks/project/{projectId}` - Tasks by project
-- `GET /api/tasks/{id}` - Get task details
-- `POST /api/tasks` - Create task
-- `PUT /api/tasks/{id}` - Update task
-- `DELETE /api/tasks/{id}` - Delete task
-
-**Spaces** (`/api/spaces`): CRUD operations for workspace spaces
-
-**Phases** (`/api/phases`):
-- CRUD operations
-- `POST /api/phases/reorder` - Reorder phases
-
-**Categories** (`/api/categories`): CRUD for project categories
-
-**Comments** (`/api/comments`):
-- `GET /api/comments/task/{taskId}` - Get task comments
-- `POST /api/comments` - Add comment
-- `PUT /api/comments/{id}` - Update comment
-- `DELETE /api/comments/{id}` - Delete comment
-
-**Events** (`/api/events`):
-- CRUD operations
-- `GET /api/events/date-range` - Events in date range
-
-**Users** (`/api/users`):
-- `GET /api/users` - List users in site
-- `GET /api/users/{id}` - Get user profile
-- `PUT /api/users/{id}` - Update user profile
-
-### API Response Format
-
-```json
+**Example:**
+```csharp
+// Entity (internal domain model)
+public class Task
 {
-  "success": true,
-  "data": { /* resource data */ },
-  "error": null,
-  "message": "Operation completed successfully"
+    public Guid TaskID { get; set; }
+    public string SiteID { get; set; }
+    public string Title { get; set; }
+    public decimal Budget { get; set; }
+    // ...many more properties
+}
+
+// DTO (API contract)
+public class CreateTaskDto
+{
+    public string Title { get; set; }
+    public string Description { get; set; }
+    public decimal? Budget { get; set; }
+    // Only exposed fields
 }
 ```
 
----
+### Error Handling
 
-## 6. Database Schema
+**Backend Pattern:**
+- Global ErrorHandlerMiddleware catches all exceptions
+- Standardized ApiResponse<T> wrapper
+- HTTP status codes: 200 (OK), 400 (Bad Request), 401 (Unauthorized), 404 (Not Found), 500 (Server Error)
+- Detailed error messages in development, generic in production
 
-### Core Entities
+**Response Format:**
+```json
+{
+    "success": true,
+    "data": { /* response payload */ },
+    "message": "Operation successful",
+    "error": null
+}
+```
 
-**Sites** (Multi-tenant root):
-- SiteID (PK, UNIQUEIDENTIFIER)
-- SiteName, SiteCode (unique)
-- Domain, IsActive
-- MaxUsers, MaxProjects (tenant limits)
-- CreatedAt, UpdatedAt
+**Frontend Pattern:**
+- Try-catch blocks in API calls
+- Sonner toast notifications for errors
+- Error boundary for component crashes
+- User-friendly error messages
 
-**Users**:
-- UserID (PK, UNIQUEIDENTIFIER)
-- SiteID (FK to Sites)
-- Email (unique per site), PasswordHash
-- Name, Avatar, Role, Status
-- RefreshToken, RefreshTokenExpiry
-- CreatedAt, LastActive, UpdatedAt, IsDeleted
-- Constraint: `UQ_User_Email_Site UNIQUE (SiteID, Email)`
+### State Management
 
-**ProjectCategories**:
-- CategoryID (PK), SiteID (FK)
-- Name, Description, Color, Icon
-- CreatedBy (FK to Users)
+**Frontend:**
+- React Hooks (useState, useEffect, useReducer)
+- Custom hooks for feature logic
+- LocalStorage for persistence (tokens, preferences)
+- No Redux/MobX (KISS principle)
 
-**Projects**:
-- ProjectID (PK), SiteID (FK), CategoryID (FK)
-- Name, Description
-- Status, Priority
-- StartDate, EndDate, Budget
-- Color, Icon
-- CreatedBy (FK), CreatedAt, UpdatedAt, IsDeleted
-
-**Phases** (Project stages):
-- PhaseID (PK), SiteID (FK), ProjectID (FK)
-- Name, Description, Color
-- Order (INT) - Display sequence
-- StartDate, EndDate
-
-**Tasks**:
-- TaskID (PK), SiteID (FK), ProjectID (FK), PhaseID (FK nullable)
-- ParentTaskID (FK self-referencing)
-- Order (INT) - Display sequence within phase
-- Title, Description
-- Status, Priority, Progress (0-100)
-- AssigneeID (FK to Users)
-- StartDate, DueDate, CompletedDate
-- EstimatedHours, ActualHours (DECIMAL)
-- Tags (NVARCHAR)
-
-**Spaces** (Workspaces):
-- SpaceID (PK), SiteID (FK), ProjectID (FK)
-- Name, Description, Icon
-- IsPrivate (BIT)
-- CreatedBy (FK)
-
-**Comments**:
-- CommentID (PK), SiteID (FK), TaskID (FK), UserID (FK)
-- Content (NVARCHAR(MAX))
-- ParentCommentID (FK self-referencing)
-
-**CalendarEvents**:
-- EventID (PK), SiteID (FK)
-- Title, Description
-- StartDate, EndDate (DATETIME2)
-- EventType, Location
-- ProjectID (FK nullable), TaskID (FK nullable)
-- CreatedBy (FK)
-
-### Data Conventions
-- **Primary Keys**: UNIQUEIDENTIFIER (GUID) for distributed systems
-- **Foreign Keys**: UNIQUEIDENTIFIER with CASCADE or RESTRICT
-- **Dates**: DATETIME2 (high precision, UTC recommended)
-- **Text**: NVARCHAR for Unicode support
-- **Money**: DECIMAL(18,2)
-- **Booleans**: BIT (0/1)
-- **Soft Deletes**: IsDeleted BIT DEFAULT 0
-- **Audit**: CreatedAt, UpdatedAt, CreatedBy
+**Custom Hooks:**
+- `useWorkspaceState` - Workspace-wide state
+- `useTaskManagement` - Task operations
+- `usePhaseManagement` - Phase operations
+- `useSpaceManagement` - Space operations
+- `useAutoSave` - Auto-save for form changes
 
 ---
 
-## 7. Frontend Architecture
+## 5. API Design
+
+### REST Conventions
+
+**Standard CRUD Endpoints:**
+```
+GET    /api/{resource}              # List all
+GET    /api/{resource}/{id}         # Get by ID
+POST   /api/{resource}              # Create
+PUT    /api/{resource}/{id}         # Update
+DELETE /api/{resource}/{id}         # Delete
+```
+
+**Filtering & Search:**
+```
+GET /api/{resource}?status=Active
+GET /api/{resource}?categoryId={id}
+POST /api/{resource}/search         # Complex search
+```
+
+**Status Codes:**
+- 200 OK - Successful GET/PUT/DELETE
+- 201 Created - Successful POST
+- 400 Bad Request - Invalid input
+- 401 Unauthorized - Missing/invalid auth
+- 404 Not Found - Resource not found
+- 500 Internal Server Error - Unhandled exception
+
+### Authentication Headers
+
+**JWT Bearer Token:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Token Refresh:**
+```
+POST /api/auth/refresh
+Body: { "refreshToken": "..." }
+```
+
+### Common Query Parameters
+
+- `pageNumber` - Pagination (future)
+- `pageSize` - Items per page (future)
+- `sortBy` - Sort field
+- `sortDirection` - ASC/DESC
+- `search` - Text search query
+
+---
+
+## 6. Frontend Architecture
 
 ### Component Organization
 
-**Feature-based structure**:
-- Related components grouped in feature folders
-- UI components separated in `components/ui/`
-- Co-located types, hooks, and utilities
-- Barrel exports for clean imports
+**UI Components** (`components/ui/`):
+- Low-level Radix UI wrapper components
+- Button, Input, Dialog, Select, etc.
+- Consistent styling with Tailwind
+- No business logic
 
-**Naming Conventions**:
-- Components: PascalCase (ProjectWorkspace.tsx)
-- Hooks: camelCase with "use" prefix (useTaskManagement.ts)
-- Utils: camelCase (calculations.ts)
-- Types: PascalCase interfaces (User, Project)
-
-### Key Components
-
-**Application Shell**:
-- `App.tsx` - Root component with routing and authentication
-- `Header.tsx` - Top navigation with user menu
-- `Sidebar.tsx` - Left navigation menu
-
-**Feature Components**:
-- `Dashboard.tsx` - Project overview dashboard
-- `Projects.tsx` - Project list and grid view
-- `ProjectWorkspace.tsx` - Main workspace (233KB, needs refactoring)
-- `MyTasks.tsx` - User's personal task list
-- `Calendar.tsx` - Calendar event view
-- `Team.tsx` - Team member management
-- `Reports.tsx` - Analytics and reporting
+**Feature Components** (`components/`):
+- High-level feature implementations
+- Projects.tsx, TaskDetailDialog.tsx, KanbanBoard.tsx
+- Contains business logic
+- Consume API services
 
 **Workspace Module** (`components/workspace/`):
-- `index.tsx` - Main workspace component
-- `WorkspaceListView.tsx` - List view implementation
-- `WorkspaceSidebar.tsx` - Workspace navigation
-- `WorkspaceToolbar.tsx` - Action toolbar
-- **Hooks**:
-  - `useWorkspaceState.ts` - Global state management
-  - `useTaskManagement.ts` - Task CRUD operations
-  - `useSpaceManagement.ts` - Space operations
-  - `usePhaseManagement.ts` - Phase operations
-  - `useWorkspaceData.ts` - Data fetching logic
-- **Utils**:
-  - `calculations.ts` - Progress and statistics
-  - `helpers.ts` - Utility functions
+- Dedicated feature module with custom hooks
+- WorkspaceListView, WorkspaceSidebar, WorkspaceToolbar
+- Complex state management in custom hooks
+- Reusable across views
 
-### State Management Approach
+### Hooks Strategy
 
-**Local State**:
-- useState for component-specific state
-- useEffect for side effects and data fetching
-- useReducer for complex state logic
+**Custom Hooks** (Feature-specific logic):
+- `useWorkspaceState()` - Workspace data & filters
+- `useTaskManagement()` - Task CRUD operations
+- `usePhaseManagement()` - Phase management
+- `useAutoSave()` - Form auto-save on changes
+- `useDebounce()` - Debounced input handling
 
-**Custom Hooks**:
-- Encapsulate feature-specific logic
+**Benefits:**
+- Separate business logic from UI rendering
+- Testability of logic independent of components
 - Reusable across components
-- Separation of concerns
+- Cleaner component files (<200 lines)
 
-**Persistence**:
-- LocalStorage for tokens and user data
-- No global state library (Redux, Zustand) currently used
-- Context API used minimally (I18nProvider)
+### Forms & Validation
 
-### API Client Architecture
+**React Hook Form Approach:**
+- Register fields with hook form
+- Validation rules at field level
+- Form-level validation
+- Error message display
+- Minimal re-renders
 
-**Structure**:
-```
-TokenManager - Token and user storage management
-    ↓
-ApiClient - HTTP client with automatic token refresh
-    ↓
-Feature APIs - Type-safe API methods
-    - authApi
-    - projectsApi
-    - tasksApi
-    - eventsApi
-    - etc.
-```
-
-**Features**:
-- Automatic token refresh on 401
-- Request timeout handling (30s default)
-- Retry logic with exponential backoff
-- Centralized error handling
-- TypeScript generics for type safety
-- AbortController for cancellation
+**Auto-Save Implementation:**
+- `useAutoSave` hook watches form changes
+- Debounced API calls (300ms delay)
+- Visual feedback (saving indicator)
+- Error handling with user notification
 
 ---
 
-## 8. Development Workflow
+## 7. Backend Architecture
 
-### Local Development
+### Startup Configuration (Program.cs)
 
-**Prerequisites**:
-- Node.js 20+ and npm/yarn
-- .NET 8.0 SDK
-- SQL Server 2022 or Docker
-- Git
+**Service Registration:**
+- Authentication (JWT Bearer)
+- Authorization (Role-based policies)
+- CORS (Development & Production)
+- API versioning
+- Swagger/OpenAPI documentation
+- Rate limiting (global & per-endpoint)
+- Response compression
+- Health checks
 
-**Frontend Setup**:
-```bash
-npm install
-npm run dev  # Starts on http://localhost:3000
+**Middleware Pipeline:**
+1. Error handling (global exception catch)
+2. CORS (must be early)
+3. HTTPS redirection
+4. Response compression
+5. Rate limiting
+6. Authentication
+7. Authorization
+8. Controller routing
+
+### Database Connection
+
+**Connection String:**
+```
+Server=localhost;Database=TaskFlowDB_Dev;User ID=sa;Password=...;TrustServerCertificate=true;
 ```
 
-**Backend Setup**:
+**Dapper Integration:**
+- SqlConnection for queries
+- IDbConnection abstraction
+- Automatic parameter binding
+- Strongly-typed result mapping
+- Stored procedure execution
+
+### Logging Configuration
+
+**Providers:**
+- Console logging (development)
+- Debug logging (development)
+- Entity Framework queries (warnings only)
+
+**Log Levels:**
+- Error - Exception details
+- Warning - Suspicious conditions
+- Information - Application flow
+- Debug - Detailed diagnostics
+
+---
+
+## 8. Security Considerations
+
+### Authentication
+
+**JWT Token Security:**
+- 32+ character secret key
+- HS256 algorithm (HMAC-SHA256)
+- Short expiration: 8 hours (access), 30 days (refresh)
+- Signature validation on every request
+- Claims validation (issuer, audience)
+
+**Password Security:**
+- BCrypt hashing with cost factor 10
+- No passwords in logs or responses
+- Secure password reset flow (future)
+
+### Authorization
+
+**Role-Based Access Control:**
+- Admin - Full system access
+- Manager - Project & team management
+- Member - Task assignment & comments
+
+**Endpoint Protection:**
+- [Authorize] attribute on all protected endpoints
+- Multi-level: AllowAnonymous, default (Authorize), specific roles
+- SiteID validation on every request
+
+### Rate Limiting
+
+**Global Limit:**
+- 100 requests per 60 seconds (configurable)
+
+**Auth Endpoint Limit:**
+- 10 requests per minute (prevent brute force)
+- Queue limit: 2 pending requests
+
+### CORS Configuration
+
+**Development:**
+- Allows localhost:5600, 5173, 5174, 3000, 3001, 3007
+- Allows all methods and headers
+- Allows credentials (cookies)
+
+**Production:**
+- Configurable via environment variable
+- Specific origins only
+- Restrict headers/methods
+
+### Data Validation
+
+**Input Validation:**
+- DTO property attributes ([Required], [StringLength], etc.)
+- Model state validation in controllers
+- Custom validation rules
+- SQL parameter binding (prevent injection)
+
+---
+
+## 9. File Size Management
+
+**Largest Files (Token Count):**
+1. src/index.css - 37,258 tokens (Tailwind styles)
+2. src/components/EditTaskForm.tsx - 17,931 tokens
+3. src/components/ProjectWorkspaceV1.tsx - 11,489 tokens
+4. src/components/TaskDetailDialog.old.tsx - 11,046 tokens (deprecated)
+5. src/components/AddInvoiceDialog.tsx - 9,860 tokens
+
+**File Organization:**
+- Components kept under 200 lines (KISS principle)
+- Large features split into subcomponents
+- Hooks extracted to separate files
+- Utils separated by feature
+
+---
+
+## 10. Development Workflow
+
+### Git Conventions
+
+**Branch Strategy:**
+- `main` - Production releases
+- `develop` - Integration branch (future)
+- Feature branches: `feature/task-detail-redesign`
+- Bugfix branches: `bugfix/auth-token-issue`
+
+**Commit Messages:**
+- Format: `type: brief description`
+- Types: feat, fix, docs, refactor, test, chore
+- Example: `feat: add CRM customer management`
+
+**Pre-commit Checks:**
+- Linting (ESLint)
+- Type checking (TypeScript)
+- No test failures
+- No hardcoded credentials
+
+### Build & Deployment
+
+**Frontend Build:**
 ```bash
-cd Backend/TaskFlow.API
-dotnet restore
-dotnet run  # Starts on http://localhost:5001
+npm run build  # Vite production build -> dist/
 ```
 
-**Docker Setup**:
+**Backend Build:**
 ```bash
+dotnet build   # Compile to obj/
+dotnet publish # Release package
+```
+
+**Docker Build:**
+```bash
+docker-compose build
 docker-compose up -d
-# Frontend: http://localhost:3000
-# Backend: http://localhost:5001
-# Swagger: http://localhost:5001/swagger
-# SQL Server: localhost:1433
 ```
-
-### Available Scripts
-
-**Frontend** (package.json):
-- `npm run dev` - Start Vite dev server
-- `npm run build` - Production build
-- `npm test` - Run E2E tests
-- `npm run docker:up` - Start Docker services
-- `npm run docker:down` - Stop Docker services
-- `npm run docker:reset` - Reset and restart services
-- `npm run docker:logs` - View all logs
-- `npm run docker:logs:backend` - Backend logs only
-
-**Backend**:
-- `dotnet run` - Start API server
-- `dotnet build` - Compile project
-- `dotnet test` - Run tests (if configured)
-- `dotnet publish` - Create deployment package
 
 ### Testing Strategy
 
-**E2E Tests**:
-- Located in `tests/e2e-test.ts`
-- Tests authentication, CRUD operations
-- Run with `npm test`
+**Frontend:**
+- E2E tests (Playwright/Cypress)
+- Component tests (React Testing Library)
+- Manual testing via UI
 
-**Manual Testing**:
-- Swagger UI at `/swagger`
-- Test HTML pages in project root
-- PowerShell scripts for specific scenarios
-
----
-
-## 9. AI Agent Integration
-
-The project includes comprehensive Claude AI configuration in `.claude/`:
-
-**Agent Roles** (15 agents):
-- Planner, Developer, Debugger, Tester
-- Documenter (Docs Manager)
-- UI/UX Designer
-- Database Admin
-- Git Manager
-- Researcher
-- Code Reviewer
-- Project Manager
-- Copywriter
-- Journal Writer
-- Scout
-- Brainstormer
-
-**Slash Commands** (30+):
-- `/ask` - Answer technical questions
-- `/brainstorm` - Feature brainstorming
-- `/bootstrap` - New project setup
-- `/cook` - Implement features step by step
-- `/debug` - Debug issues
-- `/fix/*` - Fix specific issues (CI, types, tests, UI, logs)
-- `/plan` - Create implementation plans
-- `/test` - Run tests
-- `/docs/*` - Documentation management
-- `/git/*` - Git operations
-- `/design/*` - Design implementations
-- `/content/*` - Content writing
-
-**Skills** (20+):
-- Better Auth, Next.js, Tailwind CSS, shadcn/ui
-- Document processing (PDF, DOCX, XLSX, PPTX)
-- FFmpeg, ImageMagick
-- MCP Builder, Repomix
-- Problem-solving frameworks
-- Shopify, Turborepo
-
-**Workflows**:
-- Primary workflow (`primary-workflow.md`)
-- Development rules (`development-rules.md`)
-- Orchestration protocol (`orchestration-protocol.md`)
-- Documentation management (`documentation-management.md`)
+**Backend:**
+- Unit tests (xUnit) - Repositories, Services
+- Integration tests - API endpoints
+- Database tests - Stored procedures
 
 ---
 
-## 10. Known Issues & Technical Debt
+## 11. Performance Optimizations
 
-### High Priority
+### Frontend
 
-1. **ProjectWorkspace.tsx Complexity**:
-   - Single 233KB file with 48k+ tokens
-   - Difficult to maintain and test
-   - Refactoring guide exists: `src/components/workspace/REFACTOR_GUIDE.md`
-   - Migration guide available: `src/components/workspace/MIGRATION_GUIDE.md`
+**Code Splitting:**
+- Dynamic imports for routes (future)
+- Lazy loading of heavy components
+- Chunk optimization in Vite
 
-2. **Missing Test Coverage**:
-   - No unit tests
-   - No integration tests
-   - Only manual E2E tests
-   - Recommend: Jest + React Testing Library
+**Rendering Optimization:**
+- React.memo for pure components
+- useMemo/useCallback for expensive operations
+- Virtual scrolling for large lists (future)
+- Image lazy loading
 
-3. **Security Gaps**:
-   - No rate limiting on API endpoints
-   - No account lockout after failed logins
-   - Refresh tokens stored in localStorage (XSS vulnerable)
-   - Recommend: HttpOnly cookies for tokens
+**Bundle Size:**
+- Tree-shaking unused code
+- Minification & compression
+- CSS purging (Tailwind)
+- Gzip compression in Docker
 
-4. **Input Validation**:
-   - No validation attributes on DTOs
-   - Manual validation in controllers
-   - Recommend: FluentValidation library
+### Backend
 
-### Medium Priority
+**Database Optimization:**
+- Indexes on frequently queried columns
+- Query optimization in Dapper
+- Connection pooling
+- Caching (future)
 
-5. **No Caching Layer**:
-   - Every request hits database
-   - Recommend: Redis or In-Memory cache
-
-6. **Type Safety Issues**:
-   - Some `any` types in legacy code
-   - Missing type definitions for some API responses
-
-7. **State Management**:
-   - No global state library
-   - Props drilling in deep trees
-   - Context API underutilized
-
-8. **Database Migrations**:
-   - SQL scripts only, no EF migrations
-   - Manual schema changes required
-
-### Low Priority
-
-9. **GUID Performance**:
-   - GUID primary keys can fragment indexes
-   - Consider NEWSEQUENTIALID() for better performance
-
-10. **Missing Indexes**:
-    - No explicit indexes beyond PK/FK
-    - Query performance may degrade at scale
-
-11. **Documentation Gaps**:
-    - No architecture diagrams
-    - Incomplete API documentation beyond Swagger
-    - No performance benchmarks
+**API Optimization:**
+- Response compression (gzip)
+- Pagination (future)
+- Sparse fieldsets (future)
+- ETag caching support (future)
 
 ---
 
-## 11. File Size Statistics
+## 12. Unresolved Questions & Future Enhancements
 
-**Top 5 Files by Size**:
-1. ProjectWorkspace.tsx - 233KB (48,373 tokens)
-2. Various XSD schemas - Multiple large schema files
-3. Database seed scripts - Multiple large SQL files
+### Known Limitations
+- Pagination not yet implemented
+- Recurring events in calendar (future)
+- Real-time collaboration (WebSocket) - future
+- File attachments to tasks (future)
+- Advanced reporting & analytics (future)
+- Mobile app (future)
 
-**Component Count**:
-- React components: 95+ files
-- shadcn/ui components: 30+ reusable UI components
-- Backend controllers: 10
-- Backend repositories: 8
-- Database tables: 9
+### Tech Debt
+- EditTaskForm.tsx is 80KB (should refactor subcomponents)
+- Some duplicate code in controllers (could use base classes)
+- Test coverage needs improvement
+- Documentation needs screenshots/diagrams
 
-**Code Distribution**:
-- Frontend TypeScript/TSX: ~60% of code
-- Backend C#: ~25% of code
-- Configuration/Documentation: ~10% of code
-- Scripts/Tests: ~5% of code
-
----
-
-## 12. Deployment Considerations
-
-### Docker Deployment
-- Multi-container setup via docker-compose.yml
-- Services: SQL Server, Backend API, Frontend, DB-Init
-- Health checks ensure proper startup sequence
-- Volume mounts for database persistence
-
-### Environment Variables
-**Backend**:
-- `ConnectionStrings__DefaultConnection` - Database connection
-- `Jwt__SecretKey` - JWT signing key (32+ characters)
-- `Jwt__Issuer`, `Jwt__Audience` - Token validation
-- `Cors__AllowedOrigins` - CORS configuration
-
-**Frontend**:
-- `VITE_API_BASE_URL` - Backend API URL
-- `VITE_API_TIMEOUT` - Request timeout
-
-### Security Checklist
-- [ ] Change default passwords
-- [ ] Use strong JWT secret (32+ chars)
-- [ ] Enable HTTPS in production
-- [ ] Configure proper CORS origins
-- [ ] Set secure password hash cost
-- [ ] Implement rate limiting
-- [ ] Enable account lockout
-- [ ] Use HttpOnly cookies for tokens
-- [ ] Configure Content Security Policy
-- [ ] Enable SQL Server encryption
-- [ ] Regular security audits
-
----
-
-## 13. Future Enhancements
-
-### Immediate Priorities
-1. Refactor ProjectWorkspace.tsx into smaller modules
-2. Add comprehensive test coverage
-3. Implement caching layer (Redis)
-4. Add input validation (FluentValidation)
-5. Security hardening (rate limiting, account lockout)
-
-### Medium-term Goals
-1. Real-time collaboration (SignalR)
-2. File attachments for tasks
-3. Email notifications
-4. Advanced reporting and analytics
-5. Mobile-responsive improvements
-6. Offline support with service workers
-
-### Long-term Vision
-1. Mobile apps (React Native)
-2. Third-party integrations (Slack, GitHub, Jira)
-3. AI-powered task suggestions
-4. Advanced project templates
-5. Time tracking and invoicing
-6. Webhooks for external systems
-7. Custom workflow automation
-
----
-
-## Summary
-
-The Modern Task Management System v2.7 is a well-architected, feature-rich application with:
-
-**Strengths**:
-- Clean architecture with separation of concerns
-- Multi-tenant support with proper isolation
-- Comprehensive API with Swagger documentation
-- Modern React patterns and component library
-- Docker-based development and deployment
-- Extensive AI agent integration for development assistance
-
-**Areas for Improvement**:
-- Code complexity in ProjectWorkspace component
-- Test coverage
-- Security hardening
-- Performance optimization
-- State management strategy
-
-The codebase is production-ready for small to medium deployments with a clear path for scaling and improvement documented in planning files and refactoring guides.
-
-**Last Updated**: 2025-10-30
-**Version**: 2.7
-**Generated by**: Repomix + Manual Analysis
+### Security Improvements
+- Implement refresh token rotation
+- HttpOnly cookies instead of localStorage
+- CSRF protection
+- Content Security Policy (CSP) headers
+- Rate limiting per user (not just global)

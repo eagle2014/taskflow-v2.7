@@ -181,6 +181,12 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ISpaceRepository, SpaceRepository>();
 builder.Services.AddScoped<IPhaseRepository, PhaseRepository>();
 
+// Register CRM repositories
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<IContactRepository, ContactRepository>();
+builder.Services.AddScoped<IDealRepository, DealRepository>();
+builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();
+
 // Add health checks
 builder.Services.AddHealthChecks();
 

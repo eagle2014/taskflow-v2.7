@@ -212,19 +212,22 @@ export function TaskTabs({
   };
 
   const handleAddSubtask = async (name: string) => {
-    if (!task.projectID) {
-      toast.error('Task must belong to a project');
-      return;
-    }
-
     try {
-      const newTask = await tasksApi.create({
+      console.log('Creating subtask with:', {
         projectID: task.projectID,
+        parentTaskID: task.id,
+        title: name,
+      });
+
+      const newTask = await tasksApi.create({
+        projectID: task.projectID || undefined,
         parentTaskID: task.id,
         title: name,
         status: 'To Do',
         priority: 'Medium',
       });
+
+      console.log('Created subtask:', newTask);
 
       const newSubtask: Subtask = {
         id: newTask.taskID,
@@ -235,8 +238,12 @@ export function TaskTabs({
       onSubtasksChange?.([...subtasks, newSubtask]);
       toast.success('Subtask created');
     } catch (error) {
-      console.error('Failed to create subtask:', error);
-      toast.error('Failed to create subtask');
+      console.error('Failed to create subtask - Full error:', error);
+      if (error instanceof Error) {
+        toast.error(`Failed: ${error.message}`);
+      } else {
+        toast.error('Failed to create subtask');
+      }
     }
   };
 

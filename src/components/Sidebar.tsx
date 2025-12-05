@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Resizable } from 're-resizable';
-import { 
-  LayoutDashboard, 
-  Rocket, 
+import {
+  LayoutDashboard,
+  Rocket,
   User,
   Calendar,
   PieChart,
@@ -11,7 +11,8 @@ import {
   CheckSquare,
   LayoutGrid,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Handshake
 } from 'lucide-react';
 import { useI18n } from '../utils/i18n/context';
 import { Button } from './ui/button';
@@ -44,6 +45,7 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
     { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
     { id: 'projects', label: t('nav.projects'), icon: Rocket },
     { id: 'project-workspace', label: 'Project Workspace', icon: LayoutGrid },
+    { id: 'deals', label: 'Deals', icon: Handshake },
     { id: 'my-tasks', label: t('nav.myTasks'), icon: User },
     { id: 'calendar', label: t('nav.calendar'), icon: Calendar },
     { id: 'reports', label: t('nav.reports'), icon: PieChart },
