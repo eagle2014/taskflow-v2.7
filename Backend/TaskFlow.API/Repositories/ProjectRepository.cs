@@ -7,6 +7,7 @@ namespace TaskFlow.API.Repositories
 {
     /// <summary>
     /// Project repository implementation using Dapper and stored procedures
+    /// ProjectID is human-readable code (e.g., "PRJ-0001"), RowPointer is internal GUID
     /// </summary>
     public class ProjectRepository : IProjectRepository
     {
@@ -31,11 +32,18 @@ namespace TaskFlow.API.Repositories
             return await connection.QueryAsync<Project>("sp_Project_GetAll", parameters, commandType: System.Data.CommandType.StoredProcedure);
         }
 
-        public async Task<Project?> GetByIdAsync(string siteId, Guid id)
+        public async Task<Project?> GetByIdAsync(string siteId, string projectId)
         {
             using var connection = GetConnection();
-            var parameters = new { SiteID = siteId, ProjectID = id };
+            var parameters = new { SiteID = siteId, ProjectID = projectId };
             return await connection.QueryFirstOrDefaultAsync<Project>("sp_Project_GetById", parameters, commandType: System.Data.CommandType.StoredProcedure);
+        }
+
+        public async Task<Project?> GetByRowPointerAsync(string siteId, Guid rowPointer)
+        {
+            using var connection = GetConnection();
+            var parameters = new { SiteID = siteId, RowPointer = rowPointer };
+            return await connection.QueryFirstOrDefaultAsync<Project>("sp_Project_GetByRowPointer", parameters, commandType: System.Data.CommandType.StoredProcedure);
         }
 
         public async Task<Project> AddAsync(Project entity)
@@ -43,8 +51,9 @@ namespace TaskFlow.API.Repositories
             using var connection = GetConnection();
             var parameters = new
             {
-                entity.ProjectID,
+                entity.RowPointer,
                 entity.SiteID,
+                entity.ProjectID,
                 entity.Name,
                 entity.Description,
                 entity.CategoryID,
@@ -61,17 +70,23 @@ namespace TaskFlow.API.Repositories
                 entity.Progress,
                 entity.CreatedBy
             };
-            await connection.ExecuteAsync("sp_Project_Create", parameters, commandType: System.Data.CommandType.StoredProcedure);
+
+            // Get the auto-generated ProjectID if not provided
+            var result = await connection.QueryFirstOrDefaultAsync<string>("sp_Project_Create", parameters, commandType: System.Data.CommandType.StoredProcedure);
+            if (!string.IsNullOrEmpty(result))
+            {
+                entity.ProjectID = result;
+            }
             return entity;
         }
 
-        public async Task<Project> UpdateAsync(string siteId, Guid id, Project entity)
+        public async Task<Project> UpdateAsync(string siteId, string projectId, Project entity)
         {
             using var connection = GetConnection();
             var parameters = new
             {
                 SiteID = siteId,
-                ProjectID = id,
+                ProjectID = projectId,
                 entity.Name,
                 entity.Description,
                 entity.CategoryID,
@@ -91,15 +106,15 @@ namespace TaskFlow.API.Repositories
             return entity;
         }
 
-        public async Task<bool> DeleteAsync(string siteId, Guid id)
+        public async Task<bool> DeleteAsync(string siteId, string projectId)
         {
             using var connection = GetConnection();
-            var parameters = new { SiteID = siteId, ProjectID = id };
+            var parameters = new { SiteID = siteId, ProjectID = projectId };
             var result = await connection.ExecuteAsync("sp_Project_Delete", parameters, commandType: System.Data.CommandType.StoredProcedure);
             return result > 0;
         }
 
-        public async Task<IEnumerable<Project>> GetByCategoryAsync(string siteId, Guid categoryId)
+        public async Task<IEnumerable<Project>> GetByCategoryAsync(string siteId, string categoryId)
         {
             using var connection = GetConnection();
             var parameters = new { SiteID = siteId, CategoryID = categoryId };

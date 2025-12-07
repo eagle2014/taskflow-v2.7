@@ -13,28 +13,39 @@ namespace TaskFlow.API.Controllers
     public class PhasesController : ApiControllerBase
     {
         private readonly IPhaseRepository _phaseRepository;
+        private readonly IProjectRepository _projectRepository;
         private readonly ILogger<PhasesController> _logger;
 
         public PhasesController(
             IPhaseRepository phaseRepository,
+            IProjectRepository projectRepository,
             ILogger<PhasesController> logger)
         {
             _phaseRepository = phaseRepository;
+            _projectRepository = projectRepository;
             _logger = logger;
         }
 
         /// <summary>
         /// Get all phases for a project
         /// </summary>
-        /// <param name="projectId">Project ID</param>
+        /// <param name="projectId">Project ID (human-readable code like PRJ-0001)</param>
         /// <returns>List of phases</returns>
         [HttpGet("project/{projectId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<PhaseDto>>>> GetByProject(Guid projectId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<PhaseDto>>>> GetByProject(string projectId)
         {
             try
             {
                 var siteId = GetSiteId();
-                var phases = await _phaseRepository.GetByProjectAsync(siteId, projectId);
+
+                // Lookup project to get RowPointer
+                var project = await _projectRepository.GetByIdAsync(siteId, projectId);
+                if (project == null)
+                {
+                    return NotFound(ApiResponse<IEnumerable<PhaseDto>>.ErrorResponse("Project not found"));
+                }
+
+                var phases = await _phaseRepository.GetByProjectAsync(siteId, project.RowPointer);
 
                 var phaseDtos = phases.Select(MapToDto);
 
@@ -89,11 +100,18 @@ namespace TaskFlow.API.Controllers
                 var siteId = GetSiteId();
                 var userId = GetUserId();
 
+                // Lookup project to get RowPointer
+                var project = await _projectRepository.GetByIdAsync(siteId, createDto.ProjectID);
+                if (project == null)
+                {
+                    return NotFound(ApiResponse<PhaseDto>.ErrorResponse("Project not found"));
+                }
+
                 var phase = new Phase
                 {
                     PhaseID = Guid.NewGuid(),
                     SiteID = siteId,
-                    ProjectID = createDto.ProjectID,
+                    ProjectID = project.RowPointer, // Use RowPointer (GUID) as FK
                     Name = createDto.Name,
                     Description = createDto.Description,
                     Color = createDto.Color ?? "#3B82F6",
@@ -205,19 +223,26 @@ namespace TaskFlow.API.Controllers
         /// <summary>
         /// Reorder phases within a project
         /// </summary>
-        /// <param name="projectId">Project ID</param>
+        /// <param name="projectId">Project ID (human-readable code like PRJ-0001)</param>
         /// <param name="reorderDto">Reorder data with phase IDs in new order</param>
         /// <returns>Success response</returns>
         [HttpPost("project/{projectId}/reorder")]
         public async Task<ActionResult<ApiResponse<object>>> Reorder(
-            Guid projectId,
+            string projectId,
             [FromBody] ReorderPhasesDto reorderDto)
         {
             try
             {
                 var siteId = GetSiteId();
 
-                await _phaseRepository.ReorderAsync(siteId, projectId, reorderDto.PhaseIDs);
+                // Lookup project to get RowPointer
+                var project = await _projectRepository.GetByIdAsync(siteId, projectId);
+                if (project == null)
+                {
+                    return NotFound(ApiResponse<object>.ErrorResponse("Project not found"));
+                }
+
+                await _phaseRepository.ReorderAsync(siteId, project.RowPointer, reorderDto.PhaseIDs);
 
                 return Success<object>(null, "Phases reordered successfully");
             }

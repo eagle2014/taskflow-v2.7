@@ -7,6 +7,8 @@ namespace TaskFlow.API.Models.DTOs.Project
     /// </summary>
     public class UpdateProjectDto
     {
+        // Note: ProjectID cannot be changed after creation
+
         [MinLength(2, ErrorMessage = "Project name must be at least 2 characters")]
         public string? Name { get; set; }
 

@@ -39,7 +39,8 @@ export type TaskFieldUpdate =
   | { field: 'startDate' | 'endDate' | 'dueDate'; value: string | undefined }
   | { field: 'name'; value: string }
   | { field: 'description'; value: string }
-  | { field: 'budget' | 'spent' | 'budgetRemaining' | 'estimatedHours' | 'actualHours' | 'progress'; value: number };
+  | { field: 'budget' | 'spent' | 'budgetRemaining' | 'estimatedHours' | 'actualHours' | 'progress'; value: number }
+  | { field: 'phaseID'; value: string | null };
 
 export interface TaskMetadataProps {
   task: WorkspaceTask;

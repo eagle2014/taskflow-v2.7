@@ -13,13 +13,16 @@ namespace TaskFlow.API.Controllers
     public class TasksController : ApiControllerBase
     {
         private readonly ITaskRepository _taskRepository;
+        private readonly IProjectRepository _projectRepository;
         private readonly ILogger<TasksController> _logger;
 
         public TasksController(
             ITaskRepository taskRepository,
+            IProjectRepository projectRepository,
             ILogger<TasksController> logger)
         {
             _taskRepository = taskRepository;
+            _projectRepository = projectRepository;
             _logger = logger;
         }
 
@@ -35,7 +38,13 @@ namespace TaskFlow.API.Controllers
                 var siteId = GetSiteId();
                 var tasks = await _taskRepository.GetAllAsync(siteId);
 
-                var taskDtos = tasks.Select(MapToDto);
+                // Fetch all projects to build ProjectID -> ProjectCode lookup
+                var projects = await _projectRepository.GetAllAsync(siteId);
+                var projectCodeLookup = projects.ToDictionary(p => p.RowPointer, p => p.ProjectID);
+
+                var taskDtos = tasks.Select(t => MapToDto(t, t.ProjectID.HasValue && projectCodeLookup.ContainsKey(t.ProjectID.Value)
+                    ? projectCodeLookup[t.ProjectID.Value]
+                    : null));
 
                 return Success(taskDtos, "Tasks retrieved successfully");
             }
@@ -88,11 +97,23 @@ namespace TaskFlow.API.Controllers
                 var siteId = GetSiteId();
                 var userId = GetUserId();
 
+                // Lookup project RowPointer if ProjectID is provided
+                Guid? projectRowPointer = null;
+                if (!string.IsNullOrEmpty(createDto.ProjectID))
+                {
+                    var project = await _projectRepository.GetByIdAsync(siteId, createDto.ProjectID);
+                    if (project == null)
+                    {
+                        return NotFound(ApiResponse<TaskDto>.ErrorResponse("Project not found"));
+                    }
+                    projectRowPointer = project.RowPointer;
+                }
+
                 var task = new Models.Entities.Task
                 {
                     TaskID = Guid.NewGuid(),
                     SiteID = siteId,
-                    ProjectID = createDto.ProjectID,
+                    ProjectID = projectRowPointer,
                     PhaseID = createDto.PhaseID,
                     ParentTaskID = createDto.ParentTaskID,
                     Order = createDto.Order,
@@ -115,7 +136,7 @@ namespace TaskFlow.API.Controllers
                 };
 
                 var createdTask = await _taskRepository.AddAsync(task);
-                var taskDto = MapToDto(createdTask);
+                var taskDto = MapToDto(createdTask, createDto.ProjectID);
 
                 return CreatedAtAction(
                     nameof(GetById),
@@ -244,17 +265,26 @@ namespace TaskFlow.API.Controllers
         /// <summary>
         /// Get tasks by project
         /// </summary>
-        /// <param name="projectId">Project ID</param>
+        /// <param name="projectId">Project ID (human-readable code like PRJ-0001)</param>
         /// <returns>List of tasks in project</returns>
         [HttpGet("project/{projectId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<TaskDto>>>> GetByProject(Guid projectId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<TaskDto>>>> GetByProject(string projectId)
         {
             try
             {
                 var siteId = GetSiteId();
-                var tasks = await _taskRepository.GetByProjectAsync(siteId, projectId);
 
-                var taskDtos = tasks.Select(MapToDto);
+                // Lookup project to get RowPointer
+                var project = await _projectRepository.GetByIdAsync(siteId, projectId);
+                if (project == null)
+                {
+                    return NotFound(ApiResponse<IEnumerable<TaskDto>>.ErrorResponse("Project not found"));
+                }
+
+                var tasks = await _taskRepository.GetByProjectAsync(siteId, project.RowPointer);
+
+                // Pass the projectId (human-readable code) to MapToDto
+                var taskDtos = tasks.Select(t => MapToDto(t, projectId));
 
                 return Success(taskDtos, "Tasks retrieved successfully");
             }
@@ -278,7 +308,7 @@ namespace TaskFlow.API.Controllers
                 var siteId = GetSiteId();
                 var tasks = await _taskRepository.GetByAssigneeAsync(siteId, assigneeId);
 
-                var taskDtos = tasks.Select(MapToDto);
+                var taskDtos = tasks.Select(t => MapToDto(t));
 
                 return Success(taskDtos, "Tasks retrieved successfully");
             }
@@ -302,7 +332,7 @@ namespace TaskFlow.API.Controllers
                 var siteId = GetSiteId();
                 var tasks = await _taskRepository.GetByStatusAsync(siteId, status);
 
-                var taskDtos = tasks.Select(MapToDto);
+                var taskDtos = tasks.Select(t => MapToDto(t));
 
                 return Success(taskDtos, "Tasks retrieved successfully");
             }
@@ -326,7 +356,7 @@ namespace TaskFlow.API.Controllers
                 var siteId = GetSiteId();
                 var tasks = await _taskRepository.GetByParentTaskAsync(siteId, parentTaskId);
 
-                var taskDtos = tasks.Select(MapToDto);
+                var taskDtos = tasks.Select(t => MapToDto(t));
 
                 return Success(taskDtos, "Subtasks retrieved successfully");
             }
@@ -349,7 +379,7 @@ namespace TaskFlow.API.Controllers
                 var siteId = GetSiteId();
                 var tasks = await _taskRepository.GetOverdueAsync(siteId);
 
-                var taskDtos = tasks.Select(MapToDto);
+                var taskDtos = tasks.Select(t => MapToDto(t));
 
                 return Success(taskDtos, "Overdue tasks retrieved successfully");
             }
@@ -373,7 +403,7 @@ namespace TaskFlow.API.Controllers
                 var siteId = GetSiteId();
                 var tasks = await _taskRepository.GetDueSoonAsync(siteId, days);
 
-                var taskDtos = tasks.Select(MapToDto);
+                var taskDtos = tasks.Select(t => MapToDto(t));
 
                 return Success(taskDtos, $"Tasks due within {days} days retrieved successfully");
             }
@@ -385,13 +415,14 @@ namespace TaskFlow.API.Controllers
         }
 
         // Helper method to map entity to DTO
-        private static TaskDto MapToDto(Models.Entities.Task task)
+        private static TaskDto MapToDto(Models.Entities.Task task, string? projectCode = null)
         {
             return new TaskDto
             {
                 TaskID = task.TaskID,
                 SiteID = task.SiteID,
                 ProjectID = task.ProjectID,
+                ProjectCode = projectCode,
                 PhaseID = task.PhaseID,
                 ParentTaskID = task.ParentTaskID,
                 Order = task.Order,

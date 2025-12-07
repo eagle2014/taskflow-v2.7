@@ -3,6 +3,16 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -193,6 +203,13 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
   // New task dialog
   const [showNewTaskDialog, setShowNewTaskDialog] = useState(false);
 
+  // Delete phase confirmation dialog
+  const [deletePhaseDialog, setDeletePhaseDialog] = useState<{ open: boolean; phaseId: string | null; phaseName: string }>({
+    open: false,
+    phaseId: null,
+    phaseName: ''
+  });
+
   // Column configuration
   const [columns] = useState([
     { id: 'status', name: 'Status', visible: true },
@@ -302,7 +319,22 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
   // Load tasks for a project
   const loadTasksForProject = async (projectId: string) => {
     try {
-      // Always try API first for real-time data
+      // Load phases from API first (always fresh from database)
+      const apiPhases = await phasesApi.getByProject(projectId);
+      if (apiPhases && apiPhases.length > 0) {
+        // Convert API Phase to local Phase format
+        const convertedPhases: Phase[] = apiPhases.map((apiPhase: ApiPhase) => ({
+          id: apiPhase.phaseID,
+          name: apiPhase.name,
+          color: apiPhase.color || '#3B82F6',
+          taskCount: 0,
+          completedCount: 0,
+        }));
+        setProjectPhases(prev => ({ ...prev, [projectId]: convertedPhases }));
+        console.log(`✅ Loaded ${convertedPhases.length} phases from API for project ${projectId}`);
+      }
+
+      // Load tasks from API
       const tasks = await tasksApi.getByProject(projectId);
       console.log(`📡 API returned ${tasks?.length || 0} tasks for project ${projectId}`);
 
@@ -325,7 +357,10 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
           actualHours: task.actualHours || 0,
           progress: task.progress || 0,
           comments: 0,
-          phase: 'No Phase'
+          phase: 'No Phase',
+          projectID: task.projectID || projectId,  // Map projectID from API task
+          projectCode: task.projectCode || projectId,  // Human-readable code for phases API
+          phaseID: task.phaseID,  // Map phaseID from API task
         }));
 
         setProjectTasks(prev => ({ ...prev, [projectId]: workspaceTasksList }));
@@ -336,9 +371,11 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
         setProjectTasks(prev => ({ ...prev, [projectId]: [] }));
         setWorkspaceTasks([]);
 
-        // Create default phases
-        const defaultPhases = createDefaultPhases();
-        setProjectPhases(prev => ({ ...prev, [projectId]: defaultPhases }));
+        // Create default phases only if no phases were loaded from API
+        if (!apiPhases || apiPhases.length === 0) {
+          const defaultPhases = createDefaultPhases();
+          setProjectPhases(prev => ({ ...prev, [projectId]: defaultPhases }));
+        }
 
         console.log(`✅ No tasks found for project ${projectId}, starting with empty list`);
       }
@@ -381,7 +418,8 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
       if (projectTasks[activeProject]) {
         const tasksForProject = projectTasks[activeProject];
         if (activePhase) {
-          const filtered = tasksForProject.filter(task => task.phase === activePhase);
+          // Filter by phaseID (GUID) instead of phase name string
+          const filtered = tasksForProject.filter(task => task.phaseID === activePhase);
           setWorkspaceTasks(filtered);
         } else {
           setWorkspaceTasks(tasksForProject);
@@ -594,7 +632,7 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
   // Handle task update from TaskDetailDialog
   const handleTaskDetailUpdate = async (updatedTask: WorkspaceTask) => {
     try {
-      // Update backend API
+      // Update backend API - include phaseID
       await tasksApi.update(updatedTask.id, {
         title: updatedTask.name,
         description: updatedTask.description,
@@ -604,6 +642,7 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
         estimatedHours: updatedTask.estimatedHours,
         actualHours: updatedTask.actualHours,
         progress: updatedTask.progress,
+        phaseID: updatedTask.phaseID,  // Include phaseID in update
       });
 
       // Update local state
@@ -726,16 +765,47 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
     }
   };
 
-  const handleDeletePhase = async (spaceId: string, phaseId: string) => {
-    // Delete phase from local state (phases are stored in projectPhases, not in spaces)
-    setProjectPhases(prev => {
-      const updated = { ...prev };
-      Object.keys(updated).forEach(projectId => {
-        updated[projectId] = updated[projectId].filter(p => p.id !== phaseId);
-      });
-      return updated;
+  const handleDeletePhase = async (_spaceId: string, phaseId: string) => {
+    // Find phase name for confirmation dialog
+    let phaseName = 'this phase';
+    Object.values(projectPhases).forEach(phases => {
+      const phase = phases.find(p => p.id === phaseId);
+      if (phase) phaseName = phase.name;
     });
-    toast.success('Phase deleted');
+
+    // Show confirmation dialog
+    setDeletePhaseDialog({ open: true, phaseId, phaseName });
+  };
+
+  const confirmDeletePhase = async () => {
+    const { phaseId, phaseName } = deletePhaseDialog;
+    if (!phaseId) return;
+
+    try {
+      // Call API to delete phase
+      await phasesApi.delete(phaseId);
+
+      // Delete phase from local state
+      setProjectPhases(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(projectId => {
+          updated[projectId] = updated[projectId].filter(p => p.id !== phaseId);
+        });
+        return updated;
+      });
+
+      // Clear active phase if it was deleted
+      if (activePhase === phaseId) {
+        setActivePhase(null);
+      }
+
+      toast.success(`Phase "${phaseName}" deleted`);
+    } catch (error) {
+      console.error('Failed to delete phase:', error);
+      toast.error('Failed to delete phase');
+    } finally {
+      setDeletePhaseDialog({ open: false, phaseId: null, phaseName: '' });
+    }
   };
 
   const handleEditSpace = (spaceId: string) => toast.info('Edit space coming soon');
@@ -774,6 +844,14 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
   // GROUPING LOGIC
   // ============================================
 
+  // Helper to get phase name from phaseID
+  const getPhaseName = (phaseID: string | undefined): string => {
+    if (!phaseID || !activeProject) return 'No Phase';
+    const phases = projectPhases[activeProject] || [];
+    const phase = phases.find(p => p.id === phaseID);
+    return phase?.name || 'No Phase';
+  };
+
   const groupTasks = () => {
     if (groupBy === 'none') {
       return { 'All Tasks': workspaceTasks };
@@ -795,7 +873,8 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
           key = task.assignee ? task.assignee.name : 'Unassigned';
           break;
         case 'phase':
-          key = task.phase || 'No Phase';
+          // Lookup phase name from phaseID instead of using task.phase string
+          key = getPhaseName(task.phaseID);
           break;
         default:
           key = 'All Tasks';
@@ -1354,6 +1433,32 @@ export function ProjectWorkspace({ currentUser, onBack }: ProjectWorkspaceProps)
             }
           }}
         />
+
+        {/* Delete Phase Confirmation Dialog */}
+        <AlertDialog open={deletePhaseDialog.open} onOpenChange={(open) => {
+          if (!open) setDeletePhaseDialog({ open: false, phaseId: null, phaseName: '' });
+        }}>
+          <AlertDialogContent className="bg-[#292d39] border-[#3d4457]">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">Delete Phase</AlertDialogTitle>
+              <AlertDialogDescription className="text-[#838a9c]">
+                Are you sure you want to delete "{deletePhaseDialog.phaseName}"? This action cannot be undone.
+                Tasks in this phase will not be deleted but will no longer be assigned to any phase.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-transparent border-[#3d4457] text-[#e1e4e8] hover:bg-[#3d4457] hover:text-white">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDeletePhase}
+                className="bg-[#ef4444] hover:bg-[#dc2626] text-white"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DndProvider>
   );

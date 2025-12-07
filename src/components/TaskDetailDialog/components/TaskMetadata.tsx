@@ -3,13 +3,13 @@ import { TaskMetadataProps, Assignee } from '../types';
 import { MetadataField } from '../fields/MetadataField';
 import { StatusPill } from '../fields/StatusPill';
 import { ClickUpDatePicker } from '../fields/ClickUpDatePicker';
-import { Circle, Users, Calendar, Zap, Clock, Link2, Plus, Check, X, Loader2 } from 'lucide-react';
+import { Circle, Users, Calendar, Zap, Clock, Link2, Plus, Check, X, Loader2, Layers } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../../ui/popover';
 import { Input } from '../../ui/input';
 import { Avatar, AvatarFallback } from '../../ui/avatar';
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../ui/command';
-import { usersApi, User } from '@/services/api';
+import { usersApi, User, phasesApi, Phase } from '@/services/api';
 
 // Generate random color for user avatar
 const generateUserColor = (name: string): string => {
@@ -42,6 +42,12 @@ export function TaskMetadata({ task, onUpdate }: TaskMetadataProps) {
   const [availableUsers, setAvailableUsers] = useState<AssigneeWithEmail[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
+  // Phase state
+  const [availablePhases, setAvailablePhases] = useState<Phase[]>([]);
+  const [isLoadingPhases, setIsLoadingPhases] = useState(false);
+  const [selectedPhase, setSelectedPhase] = useState<Phase | null>(null);
+  const [isPhaseOpen, setIsPhaseOpen] = useState(false);
+
   // Load users from API on mount
   useEffect(() => {
     const loadUsers = async () => {
@@ -59,6 +65,36 @@ export function TaskMetadata({ task, onUpdate }: TaskMetadataProps) {
     };
     loadUsers();
   }, []);
+
+  // Load phases from API when task has projectCode (human-readable project ID)
+  useEffect(() => {
+    const loadPhases = async () => {
+      // Use projectCode (human-readable like "PRJ-0001") for API call
+      const projectCode = task.projectCode;
+      if (!projectCode) {
+        setAvailablePhases([]);
+        return;
+      }
+
+      setIsLoadingPhases(true);
+      try {
+        const phases = await phasesApi.getByProject(projectCode);
+        setAvailablePhases(phases);
+
+        // Set selected phase if task has phaseID
+        if (task.phaseID) {
+          const currentPhase = phases.find(p => p.phaseID === task.phaseID);
+          setSelectedPhase(currentPhase || null);
+        }
+      } catch (error) {
+        console.error('Failed to load phases:', error);
+        setAvailablePhases([]);
+      } finally {
+        setIsLoadingPhases(false);
+      }
+    };
+    loadPhases();
+  }, [task.projectCode, task.phaseID]);
   const [startDate, setStartDate] = useState<Date | undefined>(
     task.startDate ? new Date(task.startDate) : undefined
   );
@@ -123,6 +159,13 @@ export function TaskMetadata({ task, onUpdate }: TaskMetadataProps) {
     onUpdate({ field: 'assignee', value: newAssignees[0] || null });
   };
 
+  // Handle phase selection
+  const handlePhaseSelect = (phase: Phase | null) => {
+    setSelectedPhase(phase);
+    setIsPhaseOpen(false);
+    onUpdate({ field: 'phaseID', value: phase?.phaseID || null });
+  };
+
   return (
     <div className="grid grid-cols-2 gap-x-20 gap-y-6 mb-6 mt-6 py-4">
       {/* Status */}
@@ -134,6 +177,87 @@ export function TaskMetadata({ task, onUpdate }: TaskMetadataProps) {
             status={task.status}
             onChange={handleStatusChange}
           />
+        }
+      />
+
+      {/* Phase */}
+      <MetadataField
+        icon={<Layers className="w-4 h-4 text-[#838a9c]" />}
+        label="Phase"
+        value={
+          <Popover open={isPhaseOpen} onOpenChange={setIsPhaseOpen}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-2 hover:bg-[#292d39] px-2 py-1 rounded transition-colors min-h-[32px]">
+                {selectedPhase ? (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: selectedPhase.color || '#8b5cf6' }}
+                    />
+                    <span className="text-sm text-white">{selectedPhase.name}</span>
+                  </div>
+                ) : (
+                  <span className="text-sm text-[#838a9c]">
+                    {!task.projectCode ? 'No project' : 'Select phase'}
+                  </span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-0 bg-[#292d39] border-[#3d4457]" align="start">
+              <Command className="bg-transparent">
+                <CommandInput
+                  placeholder="Search phases..."
+                  className="bg-transparent text-white placeholder:text-[#838a9c] border-b border-[#3d4457]"
+                />
+                <CommandList>
+                  <CommandEmpty className="text-[#838a9c] text-sm py-4 text-center">No phases found</CommandEmpty>
+                  <CommandGroup>
+                    {isLoadingPhases ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="w-5 h-5 animate-spin text-[#838a9c]" />
+                        <span className="ml-2 text-sm text-[#838a9c]">Loading phases...</span>
+                      </div>
+                    ) : !task.projectCode ? (
+                      <div className="text-[#838a9c] text-sm py-4 text-center">Task has no project</div>
+                    ) : availablePhases.length === 0 ? (
+                      <div className="text-[#838a9c] text-sm py-4 text-center">No phases in project</div>
+                    ) : (
+                      <>
+                        {/* Option to clear phase */}
+                        <CommandItem
+                          value="no-phase"
+                          onSelect={() => handlePhaseSelect(null)}
+                          className="flex items-center gap-3 px-3 py-2 cursor-pointer text-[#c5c9d6] hover:bg-[#3d4457] hover:text-white aria-selected:bg-[#3d4457]"
+                        >
+                          <div className="w-3 h-3 rounded-full border border-[#838a9c]" />
+                          <span className="text-sm">No phase</span>
+                          {!selectedPhase && <Check className="w-4 h-4 text-[#8b5cf6] ml-auto" />}
+                        </CommandItem>
+                        {availablePhases.map((phase) => {
+                          const isSelected = selectedPhase?.phaseID === phase.phaseID;
+                          return (
+                            <CommandItem
+                              key={phase.phaseID}
+                              value={phase.name}
+                              onSelect={() => handlePhaseSelect(phase)}
+                              className="flex items-center gap-3 px-3 py-2 cursor-pointer text-[#c5c9d6] hover:bg-[#3d4457] hover:text-white aria-selected:bg-[#3d4457]"
+                            >
+                              <div
+                                className="w-3 h-3 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: phase.color || '#8b5cf6' }}
+                              />
+                              <span className="text-sm flex-1 truncate">{phase.name}</span>
+                              {isSelected && <Check className="w-4 h-4 text-[#8b5cf6] flex-shrink-0" />}
+                            </CommandItem>
+                          );
+                        })}
+                      </>
+                    )}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         }
       />
 

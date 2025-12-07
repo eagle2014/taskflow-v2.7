@@ -7,7 +7,8 @@ namespace TaskFlow.API.Models.DTOs.Task
     {
         public Guid TaskID { get; set; }
         public string SiteID { get; set; } = string.Empty;
-        public Guid? ProjectID { get; set; }  // Nullable for subtasks
+        public Guid? ProjectID { get; set; }  // Nullable for subtasks (RowPointer)
+        public string? ProjectCode { get; set; }  // Human-readable code like "PRJ-0001"
         public Guid? PhaseID { get; set; }
         public Guid? ParentTaskID { get; set; }
         public int? Order { get; set; }

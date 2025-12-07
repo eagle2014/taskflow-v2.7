@@ -61,6 +61,7 @@ export interface WorkspaceTask {
   parentId?: string;
   phaseID?: string;
   projectID?: string;
+  projectCode?: string;  // Human-readable code like "PRJ-0001"
   impact?: 'low' | 'medium' | 'high';
   files?: number;
 }

@@ -42,8 +42,9 @@ export interface User {
 }
 
 export interface Project {
-  projectID: string;
+  rowPointer: string;  // Internal GUID (UUID)
   siteID: string;
+  projectID: string;  // Human-readable code (e.g., "PRJ-0001")
   name: string;
   description?: string;
   categoryID?: string;
@@ -63,6 +64,7 @@ export interface Task {
   taskID: string;
   siteID: string;
   projectID: string;
+  projectCode?: string;  // Human-readable code like "PRJ-0001"
   phaseID?: string;
   parentTaskID?: string;
   order?: number;

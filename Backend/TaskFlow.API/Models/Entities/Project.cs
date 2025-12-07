@@ -5,8 +5,9 @@ namespace TaskFlow.API.Models.Entities
     /// </summary>
     public class Project
     {
-        public Guid ProjectID { get; set; }
+        public Guid RowPointer { get; set; }  // Internal GUID (UUID)
         public string SiteID { get; set; } = string.Empty;
+        public string ProjectID { get; set; } = string.Empty;  // Human-readable code (e.g., "PRJ-0001")
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? CategoryID { get; set; }

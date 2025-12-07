@@ -8,7 +8,7 @@ namespace TaskFlow.API.Models.DTOs.Phase
     public class CreatePhaseDto
     {
         [Required(ErrorMessage = "Project ID is required")]
-        public Guid ProjectID { get; set; }
+        public string ProjectID { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Phase name is required")]
         [MinLength(2, ErrorMessage = "Phase name must be at least 2 characters")]

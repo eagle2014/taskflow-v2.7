@@ -9,6 +9,7 @@ namespace TaskFlow.API.Controllers
 {
     /// <summary>
     /// Projects management endpoints with multi-tenant support
+    /// ProjectID is human-readable code (e.g., "PRJ-0001"), RowPointer is internal GUID
     /// </summary>
     public class ProjectsController : ApiControllerBase
     {
@@ -26,7 +27,6 @@ namespace TaskFlow.API.Controllers
         /// <summary>
         /// Get all projects for current tenant
         /// </summary>
-        /// <returns>List of projects</returns>
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<ProjectDto>>>> GetAll()
         {
@@ -35,28 +35,7 @@ namespace TaskFlow.API.Controllers
                 var siteId = GetSiteId();
                 var projects = await _projectRepository.GetAllAsync(siteId);
 
-                var projectDtos = projects.Select(p => new ProjectDto
-                {
-                    ProjectID = p.ProjectID,
-                    SiteID = p.SiteID,
-                    Name = p.Name,
-                    Description = p.Description,
-                    CategoryID = p.CategoryID,
-                    Status = p.Status,
-                    Priority = p.Priority,
-                    StartDate = p.StartDate,
-                    EndDate = p.EndDate,
-                    AssigneeID = p.AssigneeID,
-                    CustomerID = p.CustomerID,
-                    ContactID = p.ContactID,
-                    DealID = p.DealID,
-                    ActualEndDate = p.ActualEndDate,
-                    ProjectUrl = p.ProjectUrl,
-                    Progress = p.Progress,
-                    CreatedBy = p.CreatedBy,
-                    CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt
-                });
+                var projectDtos = projects.Select(p => MapToDto(p));
 
                 return Success(projectDtos, "Projects retrieved successfully");
             }
@@ -68,12 +47,10 @@ namespace TaskFlow.API.Controllers
         }
 
         /// <summary>
-        /// Get project by ID
+        /// Get project by ProjectID (human-readable code like "PRJ-0001")
         /// </summary>
-        /// <param name="id">Project ID</param>
-        /// <returns>Project details</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<ProjectDto>>> GetById(Guid id)
+        public async Task<ActionResult<ApiResponse<ProjectDto>>> GetById(string id)
         {
             try
             {
@@ -85,23 +62,7 @@ namespace TaskFlow.API.Controllers
                     return NotFound(ApiResponse<ProjectDto>.ErrorResponse("Project not found"));
                 }
 
-                var projectDto = new ProjectDto
-                {
-                    ProjectID = project.ProjectID,
-                    SiteID = project.SiteID,
-                    Name = project.Name,
-                    Description = project.Description,
-                    CategoryID = project.CategoryID,
-                    Status = project.Status,
-                    Priority = project.Priority,
-                    StartDate = project.StartDate,
-                    EndDate = project.EndDate,
-                    CreatedBy = project.CreatedBy,
-                    CreatedAt = project.CreatedAt,
-                    UpdatedAt = project.UpdatedAt
-                };
-
-                return Success(projectDto, "Project retrieved successfully");
+                return Success(MapToDto(project), "Project retrieved successfully");
             }
             catch (Exception ex)
             {
@@ -113,8 +74,6 @@ namespace TaskFlow.API.Controllers
         /// <summary>
         /// Create new project
         /// </summary>
-        /// <param name="createDto">Project creation data</param>
-        /// <returns>Created project</returns>
         [HttpPost]
         public async Task<ActionResult<ApiResponse<ProjectDto>>> Create([FromBody] CreateProjectDto createDto)
         {
@@ -125,8 +84,9 @@ namespace TaskFlow.API.Controllers
 
                 var project = new Project
                 {
-                    ProjectID = Guid.NewGuid(),
+                    RowPointer = Guid.NewGuid(),
                     SiteID = siteId,
+                    ProjectID = createDto.ProjectID ?? string.Empty, // Will be auto-generated if empty
                     Name = createDto.Name,
                     Description = createDto.Description,
                     CategoryID = createDto.CategoryID,
@@ -148,26 +108,10 @@ namespace TaskFlow.API.Controllers
 
                 var createdProject = await _projectRepository.AddAsync(project);
 
-                var projectDto = new ProjectDto
-                {
-                    ProjectID = createdProject.ProjectID,
-                    SiteID = createdProject.SiteID,
-                    Name = createdProject.Name,
-                    Description = createdProject.Description,
-                    CategoryID = createdProject.CategoryID,
-                    Status = createdProject.Status,
-                    Priority = createdProject.Priority,
-                    StartDate = createdProject.StartDate,
-                    EndDate = createdProject.EndDate,
-                    CreatedBy = createdProject.CreatedBy,
-                    CreatedAt = createdProject.CreatedAt,
-                    UpdatedAt = createdProject.UpdatedAt
-                };
-
                 return CreatedAtAction(
                     nameof(GetById),
-                    new { id = projectDto.ProjectID },
-                    ApiResponse<ProjectDto>.SuccessResponse(projectDto, "Project created successfully")
+                    new { id = createdProject.ProjectID },
+                    ApiResponse<ProjectDto>.SuccessResponse(MapToDto(createdProject), "Project created successfully")
                 );
             }
             catch (Exception ex)
@@ -180,11 +124,8 @@ namespace TaskFlow.API.Controllers
         /// <summary>
         /// Update existing project
         /// </summary>
-        /// <param name="id">Project ID</param>
-        /// <param name="updateDto">Project update data</param>
-        /// <returns>Updated project</returns>
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<ProjectDto>>> Update(Guid id, [FromBody] UpdateProjectDto updateDto)
+        public async Task<ActionResult<ApiResponse<ProjectDto>>> Update(string id, [FromBody] UpdateProjectDto updateDto)
         {
             try
             {
@@ -196,7 +137,7 @@ namespace TaskFlow.API.Controllers
                     return NotFound(ApiResponse<ProjectDto>.ErrorResponse("Project not found"));
                 }
 
-                // Apply updates
+                // Apply updates (ProjectID cannot be changed)
                 if (!string.IsNullOrEmpty(updateDto.Name))
                     existingProject.Name = updateDto.Name;
 
@@ -218,27 +159,32 @@ namespace TaskFlow.API.Controllers
                 if (updateDto.EndDate.HasValue)
                     existingProject.EndDate = updateDto.EndDate;
 
+                if (updateDto.AssigneeID.HasValue)
+                    existingProject.AssigneeID = updateDto.AssigneeID;
+
+                if (updateDto.CustomerID.HasValue)
+                    existingProject.CustomerID = updateDto.CustomerID;
+
+                if (updateDto.ContactID.HasValue)
+                    existingProject.ContactID = updateDto.ContactID;
+
+                if (updateDto.DealID.HasValue)
+                    existingProject.DealID = updateDto.DealID;
+
+                if (updateDto.ActualEndDate.HasValue)
+                    existingProject.ActualEndDate = updateDto.ActualEndDate;
+
+                if (!string.IsNullOrEmpty(updateDto.ProjectUrl))
+                    existingProject.ProjectUrl = updateDto.ProjectUrl;
+
+                if (updateDto.Progress.HasValue)
+                    existingProject.Progress = updateDto.Progress.Value;
+
                 existingProject.UpdatedAt = DateTime.UtcNow;
 
                 var updatedProject = await _projectRepository.UpdateAsync(siteId, id, existingProject);
 
-                var projectDto = new ProjectDto
-                {
-                    ProjectID = updatedProject.ProjectID,
-                    SiteID = updatedProject.SiteID,
-                    Name = updatedProject.Name,
-                    Description = updatedProject.Description,
-                    CategoryID = updatedProject.CategoryID,
-                    Status = updatedProject.Status,
-                    Priority = updatedProject.Priority,
-                    StartDate = updatedProject.StartDate,
-                    EndDate = updatedProject.EndDate,
-                    CreatedBy = updatedProject.CreatedBy,
-                    CreatedAt = updatedProject.CreatedAt,
-                    UpdatedAt = updatedProject.UpdatedAt
-                };
-
-                return Success(projectDto, "Project updated successfully");
+                return Success(MapToDto(updatedProject), "Project updated successfully");
             }
             catch (Exception ex)
             {
@@ -250,10 +196,8 @@ namespace TaskFlow.API.Controllers
         /// <summary>
         /// Delete project (soft delete)
         /// </summary>
-        /// <param name="id">Project ID</param>
-        /// <returns>Success response</returns>
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id)
+        public async Task<ActionResult<ApiResponse<object>>> Delete(string id)
         {
             try
             {
@@ -279,38 +223,15 @@ namespace TaskFlow.API.Controllers
         /// <summary>
         /// Get projects by category
         /// </summary>
-        /// <param name="categoryId">Category ID</param>
-        /// <returns>List of projects in category</returns>
         [HttpGet("category/{categoryId}")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<ProjectDto>>>> GetByCategory(Guid categoryId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<ProjectDto>>>> GetByCategory(string categoryId)
         {
             try
             {
                 var siteId = GetSiteId();
                 var projects = await _projectRepository.GetByCategoryAsync(siteId, categoryId);
 
-                var projectDtos = projects.Select(p => new ProjectDto
-                {
-                    ProjectID = p.ProjectID,
-                    SiteID = p.SiteID,
-                    Name = p.Name,
-                    Description = p.Description,
-                    CategoryID = p.CategoryID,
-                    Status = p.Status,
-                    Priority = p.Priority,
-                    StartDate = p.StartDate,
-                    EndDate = p.EndDate,
-                    AssigneeID = p.AssigneeID,
-                    CustomerID = p.CustomerID,
-                    ContactID = p.ContactID,
-                    DealID = p.DealID,
-                    ActualEndDate = p.ActualEndDate,
-                    ProjectUrl = p.ProjectUrl,
-                    Progress = p.Progress,
-                    CreatedBy = p.CreatedBy,
-                    CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt
-                });
+                var projectDtos = projects.Select(p => MapToDto(p));
 
                 return Success(projectDtos, "Projects retrieved successfully");
             }
@@ -324,8 +245,6 @@ namespace TaskFlow.API.Controllers
         /// <summary>
         /// Get projects by status
         /// </summary>
-        /// <param name="status">Project status</param>
-        /// <returns>List of projects with specified status</returns>
         [HttpGet("status/{status}")]
         public async Task<ActionResult<ApiResponse<IEnumerable<ProjectDto>>>> GetByStatus(string status)
         {
@@ -334,28 +253,7 @@ namespace TaskFlow.API.Controllers
                 var siteId = GetSiteId();
                 var projects = await _projectRepository.GetByStatusAsync(siteId, status);
 
-                var projectDtos = projects.Select(p => new ProjectDto
-                {
-                    ProjectID = p.ProjectID,
-                    SiteID = p.SiteID,
-                    Name = p.Name,
-                    Description = p.Description,
-                    CategoryID = p.CategoryID,
-                    Status = p.Status,
-                    Priority = p.Priority,
-                    StartDate = p.StartDate,
-                    EndDate = p.EndDate,
-                    AssigneeID = p.AssigneeID,
-                    CustomerID = p.CustomerID,
-                    ContactID = p.ContactID,
-                    DealID = p.DealID,
-                    ActualEndDate = p.ActualEndDate,
-                    ProjectUrl = p.ProjectUrl,
-                    Progress = p.Progress,
-                    CreatedBy = p.CreatedBy,
-                    CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt
-                });
+                var projectDtos = projects.Select(p => MapToDto(p));
 
                 return Success(projectDtos, "Projects retrieved successfully");
             }
@@ -365,5 +263,32 @@ namespace TaskFlow.API.Controllers
                 return StatusCode(500, ApiResponse<IEnumerable<ProjectDto>>.ErrorResponse("Error retrieving projects"));
             }
         }
+
+        /// <summary>
+        /// Map Project entity to ProjectDto
+        /// </summary>
+        private static ProjectDto MapToDto(Project p) => new()
+        {
+            RowPointer = p.RowPointer,
+            SiteID = p.SiteID,
+            ProjectID = p.ProjectID,
+            Name = p.Name,
+            Description = p.Description,
+            CategoryID = p.CategoryID,
+            Status = p.Status,
+            Priority = p.Priority,
+            StartDate = p.StartDate,
+            EndDate = p.EndDate,
+            AssigneeID = p.AssigneeID,
+            CustomerID = p.CustomerID,
+            ContactID = p.ContactID,
+            DealID = p.DealID,
+            ActualEndDate = p.ActualEndDate,
+            ProjectUrl = p.ProjectUrl,
+            Progress = p.Progress,
+            CreatedBy = p.CreatedBy,
+            CreatedAt = p.CreatedAt,
+            UpdatedAt = p.UpdatedAt
+        };
     }
 }

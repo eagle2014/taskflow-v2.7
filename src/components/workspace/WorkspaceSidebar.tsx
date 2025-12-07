@@ -32,7 +32,12 @@ import {
   CheckSquare,
   PanelLeftClose,
   PanelLeftOpen,
-  X
+  X,
+  RefreshCw,
+  Layout,
+  Info,
+  Mail,
+  Share2
 } from 'lucide-react';
 import {
   ContextMenu,
@@ -177,9 +182,11 @@ export function WorkspaceSidebar({
   const getProjectsForSpace = (spaceId: string) => {
     const space = spaces.find(s => s.id === spaceId);
     if (!space?.projectIds) return [];
+    // Case-insensitive comparison
+    const spaceProjectIds = space.projectIds.map(id => id.toLowerCase());
     return projects.filter(p => {
       const projectId = (p.id || (p as any).projectID || '').toLowerCase();
-      return space.projectIds.includes(projectId);
+      return spaceProjectIds.includes(projectId);
     });
   };
 
@@ -528,7 +535,9 @@ export function WorkspaceSidebar({
                                     <ChevronDown className={`w-3 h-3 text-[#838a9c] transition-transform ${!isProjectExpanded ? '-rotate-90' : ''}`} />
                                   )}
                                   <Rocket className="w-4 h-4 text-[#0394ff]" />
-                                  <span className="flex-1 text-left text-xs truncate">{project.name}</span>
+                                  <span className="flex-1 text-left text-xs truncate">
+                                    {project.projectID} - {project.name}
+                                  </span>
                                 </button>
                               </div>
                             </ContextMenuTrigger>
@@ -580,31 +589,247 @@ export function WorkspaceSidebar({
 
                           {/* Phases under Project */}
                           {isProjectExpanded && phases.map((phase) => {
-                            const phaseTaskCount = tasks.filter(task => task.phase === phase.name).length;
-                            const isActiveProjectPhase = activePhase === phase.name && activeProject === projectId;
+                            // Count tasks by phaseID (GUID) instead of phase name
+                            const phaseTaskCount = tasks.filter(task => task.phaseID === phase.id).length;
+                            const isActiveProjectPhase = activePhase === phase.id && activeProject === projectId;
 
                             return (
-                              <button
-                                key={`project-phase-${phase.id}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onPhaseClick(phase.name);
-                                }}
-                                className={`flex items-center justify-between gap-2 w-full pl-8 pr-2 py-1 text-sm transition-colors rounded ${
-                                  isActiveProjectPhase
-                                    ? 'bg-[#0394ff]/20 text-[#0394ff]'
-                                    : 'text-[#e1e4e8] hover:bg-[#292d39]'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 flex-1">
-                                  <div
-                                    className="w-2 h-2 rounded-full"
-                                    style={{ backgroundColor: phase.color }}
-                                  />
-                                  <span className="text-xs truncate">{phase.name}</span>
-                                </div>
-                                <span className="text-xs text-[#838a9c]">{phaseTaskCount}</span>
-                              </button>
+                              <ContextMenu key={`project-phase-${phase.id}`}>
+                                <ContextMenuTrigger asChild>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      // Pass phase.id (GUID) instead of phase.name
+                                      onPhaseClick(phase.id);
+                                    }}
+                                    className={`flex items-center justify-between gap-2 w-full pl-8 pr-2 py-1 text-sm transition-colors rounded ${
+                                      isActiveProjectPhase
+                                        ? 'bg-[#0394ff]/20 text-[#0394ff]'
+                                        : 'text-[#e1e4e8] hover:bg-[#292d39]'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <div
+                                        className="w-2 h-2 rounded-full"
+                                        style={{ backgroundColor: phase.color }}
+                                      />
+                                      <span className="text-xs truncate">{phase.name}</span>
+                                    </div>
+                                    <span className="text-xs text-[#838a9c]">{phaseTaskCount}</span>
+                                  </button>
+                                </ContextMenuTrigger>
+                                <ContextMenuContent className="w-56 bg-[#292d39] border-[#3d4457] text-[#e1e4e8]">
+                                  {/* Rename */}
+                                  <ContextMenuItem
+                                    onClick={() => onEditPhase(space.id, phase.id)}
+                                    className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer"
+                                  >
+                                    <Edit2 className="w-4 h-4 mr-2" />
+                                    Rename
+                                  </ContextMenuItem>
+
+                                  {/* Copy link */}
+                                  <ContextMenuItem
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(`${window.location.origin}/phase/${phase.id}`);
+                                      toast.success('Link copied to clipboard');
+                                    }}
+                                    className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer"
+                                  >
+                                    <Link2 className="w-4 h-4 mr-2" />
+                                    Copy link
+                                  </ContextMenuItem>
+
+                                  <ContextMenuSeparator className="bg-[#3d4457]" />
+
+                                  {/* Create new submenu */}
+                                  <ContextMenuSub>
+                                    <ContextMenuSubTrigger className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457]">
+                                      <Plus className="w-4 h-4 mr-2" />
+                                      Create new
+                                    </ContextMenuSubTrigger>
+                                    <ContextMenuSubContent className="w-48 bg-[#292d39] border-[#3d4457] text-[#e1e4e8]">
+                                      <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                        <FileText className="w-4 h-4 mr-2" />
+                                        Task
+                                      </ContextMenuItem>
+                                      <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                        <Folder className="w-4 h-4 mr-2" />
+                                        List
+                                      </ContextMenuItem>
+                                    </ContextMenuSubContent>
+                                  </ContextMenuSub>
+
+                                  {/* Convert List to Sprint */}
+                                  <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                    <RefreshCw className="w-4 h-4 mr-2" />
+                                    Convert List to Sprint
+                                  </ContextMenuItem>
+
+                                  <ContextMenuSeparator className="bg-[#3d4457]" />
+
+                                  {/* Color & Icon submenu */}
+                                  <ContextMenuSub>
+                                    <ContextMenuSubTrigger className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457]">
+                                      <Palette className="w-4 h-4 mr-2" />
+                                      Color & Icon
+                                    </ContextMenuSubTrigger>
+                                    <ContextMenuSubContent className="w-48 bg-[#292d39] border-[#3d4457] text-[#e1e4e8]">
+                                      <div className="px-2 py-1.5 text-xs text-[#838a9c]">Colors</div>
+                                      <div className="grid grid-cols-5 gap-2 p-2">
+                                        {['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b', '#14b8a6', '#06b6d4'].map(color => (
+                                          <button
+                                            key={color}
+                                            className="w-6 h-6 rounded hover:scale-110 transition-transform"
+                                            style={{ backgroundColor: color }}
+                                            onClick={() => toast.success(`Color changed to ${color}`)}
+                                          />
+                                        ))}
+                                      </div>
+                                    </ContextMenuSubContent>
+                                  </ContextMenuSub>
+
+                                  {/* Templates submenu */}
+                                  <ContextMenuSub>
+                                    <ContextMenuSubTrigger className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457]">
+                                      <Layout className="w-4 h-4 mr-2" />
+                                      Templates
+                                    </ContextMenuSubTrigger>
+                                    <ContextMenuSubContent className="w-48 bg-[#292d39] border-[#3d4457] text-[#e1e4e8]">
+                                      <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                        Save as Template
+                                      </ContextMenuItem>
+                                      <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                        Browse Templates
+                                      </ContextMenuItem>
+                                    </ContextMenuSubContent>
+                                  </ContextMenuSub>
+
+                                  {/* Automations */}
+                                  <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                    <Zap className="w-4 h-4 mr-2" />
+                                    Automations
+                                  </ContextMenuItem>
+
+                                  {/* Custom Fields */}
+                                  <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                    <SlidersHorizontal className="w-4 h-4 mr-2" />
+                                    Custom Fields
+                                  </ContextMenuItem>
+
+                                  {/* Task statuses */}
+                                  <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                    <CircleDot className="w-4 h-4 mr-2" />
+                                    Task statuses
+                                  </ContextMenuItem>
+
+                                  {/* More submenu */}
+                                  <ContextMenuSub>
+                                    <ContextMenuSubTrigger className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457]">
+                                      <MoreHorizontal className="w-4 h-4 mr-2" />
+                                      More
+                                    </ContextMenuSubTrigger>
+                                    <ContextMenuSubContent className="w-48 bg-[#292d39] border-[#3d4457] text-[#e1e4e8]">
+                                      <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                        <Settings className="w-4 h-4 mr-2" />
+                                        Settings
+                                      </ContextMenuItem>
+                                      <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                        <Activity className="w-4 h-4 mr-2" />
+                                        Activity
+                                      </ContextMenuItem>
+                                    </ContextMenuSubContent>
+                                  </ContextMenuSub>
+
+                                  <ContextMenuSeparator className="bg-[#3d4457]" />
+
+                                  {/* List Info */}
+                                  <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                    <Info className="w-4 h-4 mr-2" />
+                                    List Info
+                                  </ContextMenuItem>
+
+                                  {/* Add to Favorites */}
+                                  <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                    <Star className="w-4 h-4 mr-2" />
+                                    Add to Favorites
+                                  </ContextMenuItem>
+
+                                  {/* Default task type submenu */}
+                                  <ContextMenuSub>
+                                    <ContextMenuSubTrigger className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457]">
+                                      <CheckSquare className="w-4 h-4 mr-2" />
+                                      Default task type
+                                    </ContextMenuSubTrigger>
+                                    <ContextMenuSubContent className="w-48 bg-[#292d39] border-[#3d4457] text-[#e1e4e8]">
+                                      <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                        Task
+                                      </ContextMenuItem>
+                                      <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                        Bug
+                                      </ContextMenuItem>
+                                      <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                        Feature
+                                      </ContextMenuItem>
+                                    </ContextMenuSubContent>
+                                  </ContextMenuSub>
+
+                                  {/* Email to List */}
+                                  <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                    <Mail className="w-4 h-4 mr-2" />
+                                    Email to List
+                                  </ContextMenuItem>
+
+                                  <ContextMenuSeparator className="bg-[#3d4457]" />
+
+                                  {/* Move submenu */}
+                                  <ContextMenuSub>
+                                    <ContextMenuSubTrigger className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457]">
+                                      <Move className="w-4 h-4 mr-2" />
+                                      Move
+                                    </ContextMenuSubTrigger>
+                                    <ContextMenuSubContent className="w-48 bg-[#292d39] border-[#3d4457] text-[#e1e4e8]">
+                                      <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                        Move to Space...
+                                      </ContextMenuItem>
+                                      <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                        Move to Project...
+                                      </ContextMenuItem>
+                                    </ContextMenuSubContent>
+                                  </ContextMenuSub>
+
+                                  {/* Duplicate */}
+                                  <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                    <Copy className="w-4 h-4 mr-2" />
+                                    Duplicate
+                                  </ContextMenuItem>
+
+                                  {/* Archive */}
+                                  <ContextMenuItem className="text-[#e1e4e8] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer">
+                                    <Archive className="w-4 h-4 mr-2" />
+                                    Archive
+                                  </ContextMenuItem>
+
+                                  {/* Delete */}
+                                  <ContextMenuItem
+                                    onClick={() => onDeletePhase(space.id, phase.id)}
+                                    className="text-[#ef4444] hover:bg-[#3d4457] focus:bg-[#3d4457] cursor-pointer"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete
+                                  </ContextMenuItem>
+
+                                  <ContextMenuSeparator className="bg-[#3d4457]" />
+
+                                  {/* Sharing & Permissions button */}
+                                  <div className="px-1 py-1">
+                                    <button className="w-full bg-[#8b5cf6] hover:bg-[#7c3aed] text-white rounded py-2 px-3 text-sm transition-colors flex items-center justify-center">
+                                      <Share2 className="w-4 h-4 mr-2" />
+                                      Sharing & Permissions
+                                    </button>
+                                  </div>
+                                </ContextMenuContent>
+                              </ContextMenu>
                             );
                           })}
 

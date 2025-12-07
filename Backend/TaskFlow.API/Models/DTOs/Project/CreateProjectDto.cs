@@ -7,6 +7,8 @@ namespace TaskFlow.API.Models.DTOs.Project
     /// </summary>
     public class CreateProjectDto
     {
+        public string? ProjectID { get; set; }  // Optional - auto-generated if not provided (e.g., "PRJ-0001")
+
         [Required(ErrorMessage = "Project name is required")]
         [MinLength(2, ErrorMessage = "Project name must be at least 2 characters")]
         public string Name { get; set; } = string.Empty;
